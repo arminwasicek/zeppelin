@@ -1,0 +1,26 @@
+
+[
+  {
+    "group": "sumo",
+    "name": "sumoql",
+    "className": "org.apache.zeppelin.sumo.SumoInterpreter",
+    "properties": {
+      "accessid": {
+        "envName": null,
+        "propertyName": "sumo.accessid",
+        "defaultValue": "",
+        "description": "Access id for Sumo deployment"
+      },
+      "accesskey": {
+        "envName": null,
+        "propertyName": "sumo.accesskey",
+        "defaultValue": "",
+        "description": "Access key for Sumo deployment"
+      }
+    },
+    "editor": {
+      "language": "sql"
+    }
+  }
+]
+
