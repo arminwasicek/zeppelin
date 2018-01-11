@@ -1,5 +1,9 @@
 package org.apache.zeppelin.sumo;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Properties;
 import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
@@ -40,7 +44,7 @@ public class SumoInterpreter extends Interpreter {
    */
   @Override
   public void cancel(InterpreterContext context) throws InterpreterException {
-    logger.info("Cancelled interpreation");
+    logger.info("Cancelled interpretation");
   }
  
   /**
@@ -54,13 +58,42 @@ public class SumoInterpreter extends Interpreter {
   public FormType getFormType() throws InterpreterException {
     return FormType.NATIVE;
   }
- 
+
+  private Instant parseDate(String source) {
+    try {
+      Date d = DateFormat.getInstance().parse(source);
+      return d.toInstant();
+    }
+    catch (ParseException e) {
+      //silent
+    }
+    return null;
+  }
   /**
    * Interpret a single line.
    */
   @Override
   public InterpreterResult interpret(String line, InterpreterContext context) {
-    logger.info("Interpret a line in sumo: " + line);
+    StringBuffer query = new StringBuffer();
+    Instant queryEnd = Instant.now();
+    Instant queryStart = queryEnd.minusSeconds(15 * 60);
+
+
+    String lines[] = line.split("\n");
+    for (String l: lines) {
+      if (l.startsWith("start:")) {
+        queryStart = parseDate(l);
+      }
+      else if (l.startsWith("start:")) {
+        queryEnd = parseDate(l);
+      }
+      else {
+        query.append(l + "\n");
+      }
+    }
+    logger.info("Query: " + query.toString());
+    logger.info("QueryStart: " + queryStart);
+    logger.info("QueryEnd  : " + queryEnd);
     return new InterpreterResult(Code.SUCCESS, InterpreterResult.Type.TEXT, "Empty result");
   }
 
