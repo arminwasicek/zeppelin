@@ -60,9 +60,12 @@ public class SumoInterpreter extends Interpreter {
   }
 
   private Instant parseDate(String source) {
+    DateFormat format =
+      DateFormat.getDateTimeInstance(
+        DateFormat.MEDIUM, DateFormat.SHORT);
+
     try {
-      Date d = DateFormat.getInstance().parse(source);
-      return d.toInstant();
+      return format.parse(source).toInstant();
     }
     catch (ParseException e) {
       //silent
@@ -82,10 +85,10 @@ public class SumoInterpreter extends Interpreter {
     String lines[] = line.split("\n");
     for (String l: lines) {
       if (l.startsWith("start:")) {
-        queryStart = parseDate(l);
+        queryStart = parseDate(l.substring(6).trim());
       }
-      else if (l.startsWith("start:")) {
-        queryEnd = parseDate(l);
+      else if (l.startsWith("end:")) {
+        queryEnd = parseDate(l.substring(4).trim());
       }
       else {
         query.append(l + "\n");
