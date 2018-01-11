@@ -46,14 +46,14 @@ public class ParseDateTest {
         "November 4, 2003 8:14:11 PM EST"};
 
     @Test
-    public void testParseDate2() {
+    public void testParseDate() {
         String[] testDates = (String[]) ArrayUtils.addAll(
             testDates2, testDates3);
         boolean expectedResult[] = new boolean[testDates.length];
         boolean actualResult[] = new boolean[testDates.length];
         for (int i = 0; i < testDates.length; i++) {
             expectedResult[i] = true;
-            if (ParseDate.parse3(testDates[i]) == null) {
+            if (ParseDate.parse(testDates[i]) == null) {
                 actualResult[i] = false;
                 System.out.println(testDates[i]);
             }

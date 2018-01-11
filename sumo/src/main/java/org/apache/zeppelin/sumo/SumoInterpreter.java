@@ -9,6 +9,7 @@ import org.apache.zeppelin.interpreter.InterpreterException;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResult.Code;
 import org.apache.zeppelin.interpreter.util.InterpreterOutputStream;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.zeppelin.sumo.util.ParseDate;
@@ -57,25 +58,22 @@ public class SumoInterpreter extends Interpreter {
 
 
   /**
-   * Interpret a single line.
+   * Interpret a single paragraph.
    */
   @Override
   public InterpreterResult interpret(String line, InterpreterContext context) {
     StringBuffer query = new StringBuffer();
-    Date queryEnd = new Date();
-    Calendar cal = Calendar.getInstance();
-    cal.setTime(queryEnd);
-    cal.add(Calendar.MINUTE, -15);
-    Date queryStart = cal.getTime();
+    DateTime queryEnd = DateTime.now();
+    DateTime queryStart = queryEnd.minusMinutes(15);
 
 
     String lines[] = line.split("\n");
     for (String l: lines) {
       if (l.startsWith("start:")) {
-        queryStart = ParseDate.parse2(l.substring(6).trim());
+        queryStart = ParseDate.parse(l.substring(6).trim());
       }
       else if (l.startsWith("end:")) {
-        queryEnd = ParseDate.parse2(l.substring(4).trim());
+        queryEnd = ParseDate.parse(l.substring(4).trim());
       }
       else {
         query.append(l + "\n");

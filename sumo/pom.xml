@@ -166,6 +166,20 @@
               </artifactItems>
             </configuration>
           </execution>
+          <execution>
+		    <id>copy-dependencies</id>
+		  	<phase>package</phase>
+		    <goals>
+		  	  <goal>copy-dependencies</goal>
+	  	    </goals>
+		    <configuration>
+		      <outputDirectory>${project.build.directory}/../../interpreter/sumo</outputDirectory>
+			  <overWriteReleases>false</overWriteReleases>
+			  <overWriteSnapshots>false</overWriteSnapshots>
+		  	  <overWriteIfNewer>true</overWriteIfNewer>
+		  	  <includeScope>runtime</includeScope>
+	  		</configuration>
+	  	  </execution>
         </executions>
       </plugin>
 
