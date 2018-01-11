@@ -60,6 +60,12 @@ public class SumoInterpreter extends Interpreter {
 
   enum ParserState {QUERYORDATE, QUERYPARSE, DATEPARSE}
 
+  private void addLineToQuery(String line, StringBuffer query) {
+    if (line.trim().length() > 0) {
+      query.append(line + "\n");
+    }
+  }
+
 //  final static int QUERYORDATE = 0;
 //  final static int QUERYPARSE = 1;
 //  final static int DATEPARSE = 2;
@@ -78,13 +84,13 @@ public class SumoInterpreter extends Interpreter {
     String lines[] = line.split("\n");
     List<DateTime> parsedDates = new ArrayList<>();
     ParserState state = ParserState.QUERYORDATE;
-    for (String l: lines) {
-      DateTime res = ParseDate.parse(l.trim());
+    for (String paragraphLine: lines) {
+      DateTime res = ParseDate.parse(paragraphLine.trim());
       switch (state) {
           case QUERYORDATE:
             if (res == null) {
               state = ParserState.QUERYPARSE;
-              query.append(l + "\n");
+              addLineToQuery(paragraphLine, query);
             }
             else {
               parsedDates.add(res);
@@ -92,7 +98,7 @@ public class SumoInterpreter extends Interpreter {
             break;
           case QUERYPARSE:
             if (res == null) {
-              query.append(l + "\n");
+              addLineToQuery(paragraphLine, query);
             }
             else {
               state = ParserState.DATEPARSE;
