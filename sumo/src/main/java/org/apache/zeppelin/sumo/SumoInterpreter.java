@@ -1,21 +1,17 @@
 package org.apache.zeppelin.sumo;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.time.Instant;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
 import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterException;
-import org.apache.zeppelin.interpreter.InterpreterHookRegistry;
-import org.apache.zeppelin.interpreter.InterpreterProperty;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResult.Code;
-import org.apache.zeppelin.interpreter.InterpreterUtils;
 import org.apache.zeppelin.interpreter.util.InterpreterOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.zeppelin.sumo.util.ParseDate;
 import org.apache.zeppelin.interpreter.Interpreter.FormType;
 
 /**
@@ -59,36 +55,27 @@ public class SumoInterpreter extends Interpreter {
     return FormType.NATIVE;
   }
 
-  private Instant parseDate(String source) {
-    DateFormat format =
-      DateFormat.getDateTimeInstance(
-        DateFormat.MEDIUM, DateFormat.SHORT);
 
-    try {
-      return format.parse(source).toInstant();
-    }
-    catch (ParseException e) {
-      //silent
-    }
-    return null;
-  }
   /**
    * Interpret a single line.
    */
   @Override
   public InterpreterResult interpret(String line, InterpreterContext context) {
     StringBuffer query = new StringBuffer();
-    Instant queryEnd = Instant.now();
-    Instant queryStart = queryEnd.minusSeconds(15 * 60);
+    Date queryEnd = new Date();
+    Calendar cal = Calendar.getInstance();
+    cal.setTime(queryEnd);
+    cal.add(Calendar.MINUTE, -15);
+    Date queryStart = cal.getTime();
 
 
     String lines[] = line.split("\n");
     for (String l: lines) {
       if (l.startsWith("start:")) {
-        queryStart = parseDate(l.substring(6).trim());
+        queryStart = ParseDate.parse2(l.substring(6).trim());
       }
       else if (l.startsWith("end:")) {
-        queryEnd = parseDate(l.substring(4).trim());
+        queryEnd = ParseDate.parse2(l.substring(4).trim());
       }
       else {
         query.append(l + "\n");
