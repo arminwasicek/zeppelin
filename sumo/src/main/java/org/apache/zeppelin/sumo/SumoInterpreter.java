@@ -1,8 +1,9 @@
 package org.apache.zeppelin.sumo;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Properties;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterException;
@@ -22,6 +23,7 @@ import org.apache.zeppelin.interpreter.Interpreter.FormType;
 public class SumoInterpreter extends Interpreter {
   public static Logger logger = LoggerFactory.getLogger(SumoInterpreter.class);
   private InterpreterOutputStream out;
+  private int progress = 0;
 
   public SumoInterpreter(Properties property) {
     super(property);
@@ -56,6 +58,11 @@ public class SumoInterpreter extends Interpreter {
     return FormType.NATIVE;
   }
 
+  enum ParserState {QUERYORDATE, QUERYPARSE, DATEPARSE}
+
+//  final static int QUERYORDATE = 0;
+//  final static int QUERYPARSE = 1;
+//  final static int DATEPARSE = 2;
 
   /**
    * Interpret a single paragraph.
@@ -66,22 +73,65 @@ public class SumoInterpreter extends Interpreter {
     DateTime queryEnd = DateTime.now();
     DateTime queryStart = queryEnd.minusMinutes(15);
 
-
+    // State machine to parse paragraph
+    //    --  https://www.mirkosertic.de/blog/2013/04/implementing-state-machines-with-java-enums/
     String lines[] = line.split("\n");
+    List<DateTime> parsedDates = new ArrayList<>();
+    ParserState state = ParserState.QUERYORDATE;
     for (String l: lines) {
-      if (l.startsWith("start:")) {
-        queryStart = ParseDate.parse(l.substring(6).trim());
-      }
-      else if (l.startsWith("end:")) {
-        queryEnd = ParseDate.parse(l.substring(4).trim());
-      }
-      else {
-        query.append(l + "\n");
+      DateTime res = ParseDate.parse(l.trim());
+      switch (state) {
+          case QUERYORDATE:
+            if (res == null) {
+              state = ParserState.QUERYPARSE;
+              query.append(l + "\n");
+            }
+            else {
+              parsedDates.add(res);
+            }
+            break;
+          case QUERYPARSE:
+            if (res == null) {
+              query.append(l + "\n");
+            }
+            else {
+              state = ParserState.DATEPARSE;
+              parsedDates.add(res);
+            }
+            break;
+          case DATEPARSE:
+            if (res != null) {
+              parsedDates.add(res);
+            }
       }
     }
+    Collections.sort(parsedDates);
+    if (parsedDates.size() >= 2) {
+      queryStart = parsedDates.get(0);
+      queryEnd = parsedDates.get(parsedDates.size() - 1);
+    }
+
+    // Logging query triplet
     logger.info("Query: " + query.toString());
+//    List<String> strDates = new ArrayList<>(parsedDates.size());
+//    for (DateTime date : parsedDates) {
+//      strDates.add(String.valueOf(date));
+//    }
     logger.info("QueryStart: " + queryStart);
     logger.info("QueryEnd  : " + queryEnd);
+
+    // Running query
+
+//    for (int i = 0; i < 10; i++) {
+//      try {
+//        Thread.sleep(200 * i);
+//        progress = 10 * i;
+//      }
+//      catch (InterruptedException e) {
+//        logger.info("Sleep has been interrupted");
+//      }
+//    }
+
     return new InterpreterResult(Code.SUCCESS, InterpreterResult.Type.TEXT, "Empty result");
   }
 
@@ -92,7 +142,7 @@ public class SumoInterpreter extends Interpreter {
    */
   @Override
   public int getProgress(InterpreterContext context) throws InterpreterException {
-    return 100;
+    return progress;
   }
 
 
