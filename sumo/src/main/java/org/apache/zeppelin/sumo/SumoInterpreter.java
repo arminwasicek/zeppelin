@@ -60,8 +60,7 @@ public class SumoInterpreter extends Interpreter {
    */
   @Override
   public InterpreterResult interpret(String line, InterpreterContext context) {
-    logger.info("Interpret a line in sumo");
-    System.out.println("SumoInterpreter: " + line);
+    logger.info("Interpret a line in sumo: " + line);
     return new InterpreterResult(Code.SUCCESS, InterpreterResult.Type.TEXT, "Empty result");
   }
 
