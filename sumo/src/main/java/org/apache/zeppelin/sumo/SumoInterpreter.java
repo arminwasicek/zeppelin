@@ -4,12 +4,10 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.zeppelin.interpreter.Interpreter;
-import org.apache.zeppelin.interpreter.InterpreterContext;
-import org.apache.zeppelin.interpreter.InterpreterException;
-import org.apache.zeppelin.interpreter.InterpreterResult;
+import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.interpreter.InterpreterResult.Code;
 import org.apache.zeppelin.interpreter.util.InterpreterOutputStream;
+import org.apache.zeppelin.spark.SparkInterpreter;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,7 +135,7 @@ public class SumoInterpreter extends Interpreter {
 //        logger.info("Sleep has been interrupted");
 //      }
 //    }
-    
+
     Random rand = new Random();
     long value = rand.nextLong();
 
@@ -165,6 +163,25 @@ public class SumoInterpreter extends Interpreter {
   public void close() {
     logger.info("Close sumo interpreter");
   }
-  
+
+
+  private SparkInterpreter getSparkInterpreter() {
+    LazyOpenInterpreter lazy = null;
+    SparkInterpreter spark = null;
+    Interpreter p = getInterpreterInTheSameSessionByClassName(SparkInterpreter.class.getName());
+
+    while (p instanceof WrappedInterpreter) {
+      if (p instanceof LazyOpenInterpreter) {
+        lazy = (LazyOpenInterpreter) p;
+      }
+      p = ((WrappedInterpreter) p).getInnerInterpreter();
+    }
+    spark = (SparkInterpreter) p;
+
+    if (lazy != null) {
+      lazy.open();
+    }
+    return spark;
+  }
 }
 
