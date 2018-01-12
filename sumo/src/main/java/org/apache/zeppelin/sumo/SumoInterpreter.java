@@ -1,8 +1,7 @@
 package org.apache.zeppelin.sumo;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
 
 import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.interpreter.InterpreterResult.Code;
@@ -63,10 +62,6 @@ public class SumoInterpreter extends Interpreter {
       query.append(line + "\n");
     }
   }
-
-//  final static int QUERYORDATE = 0;
-//  final static int QUERYPARSE = 1;
-//  final static int DATEPARSE = 2;
 
   /**
    * Interpret a single paragraph.
