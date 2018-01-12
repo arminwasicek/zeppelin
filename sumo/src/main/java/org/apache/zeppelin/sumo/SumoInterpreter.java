@@ -127,7 +127,6 @@ public class SumoInterpreter extends Interpreter {
    */
   @Override
   public InterpreterResult interpret(String line, InterpreterContext context) {
-    SparkInterpreter sparkInterpreter = getSparkInterpreter();
 
     InterpreterGroup intpGroup = getInterpreterGroup();
     logger.info("InterpreterGroup size: " + intpGroup.size());
@@ -135,10 +134,12 @@ public class SumoInterpreter extends Interpreter {
       logger.info("id>>>" + intp.getId());
     }
 
-//    if (sparkInterpreter.getSparkVersion().isUnsupportedVersion()) {
-//      return new InterpreterResult(Code.ERROR, "Spark "
-//              + sparkInterpreter.getSparkVersion().toString() + " is not supported");
-//    }
+    SparkInterpreter sparkInterpreter = getSparkInterpreter();
+    if (sparkInterpreter.getSparkVersion().isUnsupportedVersion()) {
+      return new InterpreterResult(Code.ERROR, "Spark "
+              + sparkInterpreter.getSparkVersion().toString() + " is not supported");
+    }
+
 //    ZeppelinContext __zeppelin__ = sparkInterpreter.getZeppelinContext();
 //    __zeppelin__.setInterpreterContext(context);
 //    __zeppelin__.setGui(context.getGui());
