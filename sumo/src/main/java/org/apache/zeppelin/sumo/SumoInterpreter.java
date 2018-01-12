@@ -137,8 +137,13 @@ public class SumoInterpreter extends Interpreter {
 //        logger.info("Sleep has been interrupted");
 //      }
 //    }
+    
+    Random rand = new Random();
+    long value = rand.nextLong();
 
-    return new InterpreterResult(Code.SUCCESS, InterpreterResult.Type.TEXT, "Empty result");
+    return new InterpreterResult(Code.SUCCESS,
+      InterpreterResult.Type.TEXT,
+      "Random result = " + value);
   }
 
   /**
