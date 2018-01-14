@@ -1,16 +1,24 @@
 package org.apache.zeppelin.spark;
 
-import org.apache.zeppelin.interpreter.InterpreterContext;
-import org.apache.zeppelin.interpreter.InterpreterResult;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.StructType;
+import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.spark.util.ParseDate;
+import org.apache.zeppelin.spark.utils.SparkUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.collection.JavaConverters;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
+
+import org.apache.spark.sql.Row;
 
 /**
  *
@@ -34,6 +42,11 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     super(property);
   }
 
+  private String getJobGroup(InterpreterContext context){
+    return "zeppelin-" + context.getParagraphId();
+  }
+
+
   @Override
   public InterpreterResult interpret(String paragraph, InterpreterContext context) {
     logger.error(">>>> SUMO INTERPRET");
@@ -43,6 +56,84 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     logger.info("Query: " + triplet.query);
     logger.info("QueryStart: " + triplet.startQuery);
     logger.info("QueryEnd  : " + triplet.endQuery);
+    logger.info("Accesskey : " + getProperty("zeppelin.spark.sumoAccesskey"));
+    logger.info("Accessid  : " + getProperty("zeppelin.spark.sumoAccessid"));
+
+    //z.input("name")
+
+    SQLContext sqlc = null;
+    SparkInterpreter sparkInterpreter = getSparkInterpreter();
+
+    if (sparkInterpreter.getSparkVersion().isUnsupportedVersion()) {
+      return new InterpreterResult(InterpreterResult.Code.ERROR, "Spark "
+              + sparkInterpreter.getSparkVersion().toString() + " is not supported");
+    }
+
+    sparkInterpreter.populateSparkWebUrl(context);
+    sqlc = getSparkInterpreter().getSQLContext();
+    SparkContext sc = sqlc.sparkContext();
+
+    String importStatements =
+      "import org.apache.spark.rdd.RDD\n" +
+      "import org.apache.spark.sql.types._\n" +
+      "import org.apache.spark.sql._\n";
+
+    String instantiateRdd =
+      "val rowsRdd: RDD[Row] = sc.parallelize(\n" +
+      "        Seq(\n" +
+      "                Row(\"first\", 2.0, 7.0),\n" +
+      "                Row(\"second\", 3.5, 2.5),\n" +
+      "                Row(\"third\", 7.0, 5.9)\n" +
+      "        )\n" +
+      ")\n";
+
+    String instantiateSchema =
+      "val schema = new StructType()\n" +
+      "        .add(StructField(\"id\", StringType, true))\n" +
+      "        .add(StructField(\"val1\", DoubleType, true))\n" +
+      "        .add(StructField(\"val2\", DoubleType, true))\n";
+
+    String createDsView =
+      "val df = spark.createDataFrame(rowsRdd, schema)\n" +
+      "df.createOrReplaceTempView(\"simple\")\n";
+
+    sparkInterpreter.interpret(
+            importStatements + instantiateRdd + instantiateSchema + createDsView, context);
+
+//    sc.setJobGroup(getJobGroup(context), "Zeppelin", false);
+//
+//    JavaRDD<Row> rdd = SparkUtils.simpleRdd(sc).toJavaRDD();
+//    StructType schema = SparkUtils.simpleSchema();
+//    //Dataset<Row> df = sqlc.createDataFrame(rdd, schema);
+//    //df.createOrReplaceGlobalTempView("simple");
+//
+//
+//    Object df = null;
+//    try {
+//      Method createDataFrameMethod = sqlc.getClass().getMethod("createDataFrame",
+//        JavaRDD.class, StructType.class);
+//      df = createDataFrameMethod.invoke(sqlc, rdd, schema);
+//      Method createOrReplaceGlobalTempView =
+//        df.getClass().getMethod("createOrReplaceGlobalTempView", String.class);
+//      createOrReplaceGlobalTempView.invoke(df, "simple");
+//    } catch (Exception e) {
+//      throw new InterpreterException(e);
+//    }
+
+
+
+    //SparkUtils.simpleRdd(sc, sqlc);
+
+
+    //SparkUtils.createRddFromJson(sqlc);
+
+//    OK
+//    sparkInterpreter.interpret("val data = Array(1, 2, 3, 4, 5)\n" +
+//      "val distData = sc.parallelize(data)", context);
+
+//    List<Integer> data = Arrays.asList(1, 2, 3, 4, 5);
+//    SparkUtils.createRdd(JavaConverters.asScalaIterableConverter(data).asScala().toSeq(), sc);
+
 
     String sqlQuery = "select age, count(1) value\n" +
             "from bank \n" +
@@ -50,6 +141,25 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
             "group by age \n" +
             "order by age";
     return super.interpret(sqlQuery, context);
+  }
+
+  private SparkInterpreter getSparkInterpreter() {
+    LazyOpenInterpreter lazy = null;
+    SparkInterpreter spark = null;
+    Interpreter p = getInterpreterInTheSameSessionByClassName(SparkInterpreter.class.getName());
+
+    while (p instanceof WrappedInterpreter) {
+      if (p instanceof LazyOpenInterpreter) {
+        lazy = (LazyOpenInterpreter) p;
+      }
+      p = ((WrappedInterpreter) p).getInnerInterpreter();
+    }
+    spark = (SparkInterpreter) p;
+
+    if (lazy != null) {
+      lazy.open();
+    }
+    return spark;
   }
 
   enum ParserState {QUERYORDATE, QUERYPARSE, DATEPARSE}
