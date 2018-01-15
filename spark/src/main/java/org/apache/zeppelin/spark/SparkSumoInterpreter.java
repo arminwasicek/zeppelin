@@ -5,6 +5,7 @@ import org.apache.spark.repl.SparkILoop;
 import org.apache.spark.sql.SQLContext;
 import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.spark.util.ParseDate;
+import org.apache.zeppelin.spark.utils.SparkUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,7 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       f.setAccessible(true);
       interpreter = (SparkILoop) f.get(sparkInterpreter);
       intp = Utils.invokeMethod(interpreter, "intp");
+      interpret(SparkUtils.importStatements());
 
     } catch (NoSuchFieldException nfse) {
       throw new InterpreterException(nfse);
@@ -79,32 +81,7 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     logger.info("Accesskey : " + getProperty("zeppelin.spark.sumoAccesskey"));
     logger.info("Accessid  : " + getProperty("zeppelin.spark.sumoAccessid"));
 
-    //z.input("name")
-
-    SQLContext sqlc = null;
-    SparkInterpreter sparkInterpreter = getSparkInterpreter();
-
-    if (sparkInterpreter.getSparkVersion().isUnsupportedVersion()) {
-      return new InterpreterResult(InterpreterResult.Code.ERROR, "Spark "
-              + sparkInterpreter.getSparkVersion().toString() + " is not supported");
-    }
-
-    sparkInterpreter.populateSparkWebUrl(context);
-    sqlc = getSparkInterpreter().getSQLContext();
-    SparkContext sc = sqlc.sparkContext();
-
-    //sparkInterpreter.
-
-    //Object intp = Utils.invokeMethod(sparkInterpreter, "intp");
-
-
-
     interpret("val a = 1");
-
-    String importStatements =
-      "import org.apache.spark.rdd.RDD\n" +
-      "import org.apache.spark.sql.types._\n" +
-      "import org.apache.spark.sql._\n";
 
     String instantiateRdd =
       "val rowsRdd: RDD[Row] = sc.parallelize(\n" +
@@ -125,49 +102,11 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       "val df = spark.createDataFrame(rowsRdd, schema)\n" +
       "df.createOrReplaceTempView(\"simple\")\n";
 
-    sparkInterpreter.interpret(
-      importStatements + instantiateRdd + instantiateSchema + createDsView, context);
+    interpret(instantiateRdd);
+    interpret(instantiateSchema);
+    interpret(createDsView);
 
-//    sc.setJobGroup(getJobGroup(context), "Zeppelin", false);
-//
-//    JavaRDD<Row> rdd = SparkUtils.simpleRdd(sc).toJavaRDD();
-//    StructType schema = SparkUtils.simpleSchema();
-//    //Dataset<Row> df = sqlc.createDataFrame(rdd, schema);
-//    //df.createOrReplaceGlobalTempView("simple");
-//
-//
-//    Object df = null;
-//    try {
-//      Method createDataFrameMethod = sqlc.getClass().getMethod("createDataFrame",
-//        JavaRDD.class, StructType.class);
-//      df = createDataFrameMethod.invoke(sqlc, rdd, schema);
-//      Method createOrReplaceGlobalTempView =
-//        df.getClass().getMethod("createOrReplaceGlobalTempView", String.class);
-//      createOrReplaceGlobalTempView.invoke(df, "simple");
-//    } catch (Exception e) {
-//      throw new InterpreterException(e);
-//    }
-
-
-
-    //SparkUtils.simpleRdd(sc, sqlc);
-
-
-    //SparkUtils.createRddFromJson(sqlc);
-
-//    OK
-//    sparkInterpreter.interpret("val data = Array(1, 2, 3, 4, 5)\n" +
-//      "val distData = sc.parallelize(data)", context);
-
-//    List<Integer> data = Arrays.asList(1, 2, 3, 4, 5);
-//    SparkUtils.createRdd(JavaConverters.asScalaIterableConverter(data).asScala().toSeq(), sc);
-
-
-    String sqlQuery = "select age, count(1) value\n" +
-            "from bank \n" +
-            "where age < 30 \n" +
-            "group by age \n" +
-            "order by age";
+    String sqlQuery = "select * from simple\n";
     return super.interpret(sqlQuery, context);
   }
 

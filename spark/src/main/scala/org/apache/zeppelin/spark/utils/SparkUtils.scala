@@ -18,6 +18,11 @@ import org.apache.hadoop.hive.ql.exec.spark.session.SparkSession
 
 object SparkUtils {
 
+  val importStatements: String =
+    "import org.apache.spark.rdd.RDD\n" +
+    "import org.apache.spark.sql.types._\n" +
+    "import org.apache.spark.sql._\n"
+
   def createRdd[T](data: Seq[T], sc: SparkContext)(implicit c: ClassTag[T]) : RDD[T] = {
     val distData = sc.parallelize(data)
     distData
