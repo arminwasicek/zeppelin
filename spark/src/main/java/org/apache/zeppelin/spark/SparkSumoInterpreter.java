@@ -1,30 +1,26 @@
 package org.apache.zeppelin.spark;
 
 import org.apache.spark.SparkContext;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.Dataset;
+import org.apache.spark.repl.SparkILoop;
 import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.StructType;
 import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.spark.util.ParseDate;
-import org.apache.zeppelin.spark.utils.SparkUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.JavaConverters;
+import scala.tools.nsc.interpreter.Results;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.util.*;
 
-import org.apache.spark.sql.Row;
 
 /**
  *
  */
 public class SparkSumoInterpreter extends SparkSqlInterpreter {
   Logger logger = LoggerFactory.getLogger(SparkSumoInterpreter.class);
+  private SparkILoop interpreter = null;
+  private Object intp = null;
 
   class QueryTriplet {
     String query;
@@ -42,10 +38,34 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     super(property);
   }
 
+  @Override
+  public void open() {
+    super.open();
+    try {
+      SparkInterpreter sparkInterpreter = getSparkInterpreter();
+      Field f = sparkInterpreter.getClass().getDeclaredField("interpreter");
+      f.setAccessible(true);
+      interpreter = (SparkILoop) f.get(sparkInterpreter);
+      intp = Utils.invokeMethod(interpreter, "intp");
+
+    } catch (NoSuchFieldException nfse) {
+      throw new InterpreterException(nfse);
+    } catch (IllegalAccessException iae) {
+      throw new InterpreterException(iae);
+    }
+  }
+
   private String getJobGroup(InterpreterContext context){
     return "zeppelin-" + context.getParagraphId();
   }
 
+  private Results.Result interpret(String line) {
+    return (Results.Result) Utils.invokeMethod(
+            intp,
+            "interpret",
+            new Class[] {String.class},
+            new Object[] {line});
+  }
 
   @Override
   public InterpreterResult interpret(String paragraph, InterpreterContext context) {
@@ -73,6 +93,14 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     sqlc = getSparkInterpreter().getSQLContext();
     SparkContext sc = sqlc.sparkContext();
 
+    //sparkInterpreter.
+
+    //Object intp = Utils.invokeMethod(sparkInterpreter, "intp");
+
+
+
+    interpret("val a = 1");
+
     String importStatements =
       "import org.apache.spark.rdd.RDD\n" +
       "import org.apache.spark.sql.types._\n" +
@@ -98,7 +126,7 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       "df.createOrReplaceTempView(\"simple\")\n";
 
     sparkInterpreter.interpret(
-            importStatements + instantiateRdd + instantiateSchema + createDsView, context);
+      importStatements + instantiateRdd + instantiateSchema + createDsView, context);
 
 //    sc.setJobGroup(getJobGroup(context), "Zeppelin", false);
 //
