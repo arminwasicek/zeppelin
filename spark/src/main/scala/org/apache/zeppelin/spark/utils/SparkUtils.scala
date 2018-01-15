@@ -23,6 +23,9 @@ object SparkUtils {
     "import org.apache.spark.sql.types._\n" +
     "import org.apache.spark.sql._\n"
 
+  def myprintln(s: String) =
+    s"Hello $s"
+
   def createRdd[T](data: Seq[T], sc: SparkContext)(implicit c: ClassTag[T]) : RDD[T] = {
     val distData = sc.parallelize(data)
     distData

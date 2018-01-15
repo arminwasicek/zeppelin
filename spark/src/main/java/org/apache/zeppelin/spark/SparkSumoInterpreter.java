@@ -1,8 +1,6 @@
 package org.apache.zeppelin.spark;
 
-import org.apache.spark.SparkContext;
 import org.apache.spark.repl.SparkILoop;
-import org.apache.spark.sql.SQLContext;
 import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.spark.util.ParseDate;
 import org.apache.zeppelin.spark.utils.SparkUtils;
@@ -50,38 +48,52 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       intp = Utils.invokeMethod(interpreter, "intp");
       interpret(SparkUtils.importStatements());
 
-    } catch (NoSuchFieldException nfse) {
-      throw new InterpreterException(nfse);
-    } catch (IllegalAccessException iae) {
-      throw new InterpreterException(iae);
+    } catch (IllegalAccessException | NoSuchFieldException e) {
+      throw new InterpreterException(e);
     }
   }
 
-  private String getJobGroup(InterpreterContext context){
-    return "zeppelin-" + context.getParagraphId();
+  private InterpreterResult.Code getResultCode(scala.tools.nsc.interpreter.Results.Result r) {
+    if (r instanceof scala.tools.nsc.interpreter.Results.Success$) {
+      return InterpreterResult.Code.SUCCESS;
+    } else if (r instanceof scala.tools.nsc.interpreter.Results.Incomplete$) {
+      return InterpreterResult.Code.INCOMPLETE;
+    } else {
+      return InterpreterResult.Code.ERROR;
+    }
   }
 
   private Results.Result interpret(String line) {
-    return (Results.Result) Utils.invokeMethod(
+    Results.Result res = (Results.Result) Utils.invokeMethod(
             intp,
             "interpret",
             new Class[] {String.class},
             new Object[] {line});
+    InterpreterResult.Code r = getResultCode(res);
+    return res;
   }
 
   @Override
   public InterpreterResult interpret(String paragraph, InterpreterContext context) {
-    logger.error(">>>> SUMO INTERPRET");
+    logger.error(">>>> SUMO INTERPRET <<<<");
     QueryTriplet triplet = parseQueryTripletFromParagraph(paragraph);
 
     // Logging query triplet
     logger.info("Query: " + triplet.query);
     logger.info("QueryStart: " + triplet.startQuery);
     logger.info("QueryEnd  : " + triplet.endQuery);
-    logger.info("Accesskey : " + getProperty("zeppelin.spark.sumoAccesskey"));
-    logger.info("Accessid  : " + getProperty("zeppelin.spark.sumoAccessid"));
 
-    interpret("val a = 1");
+    // Access credentials
+    String accesskey = getProperty("zeppelin.spark.sumoAccesskey");
+    String accessid  = getProperty("zeppelin.spark.sumoAccessid");
+    logger.info("Accesskey : " + accesskey);
+    logger.info("Accessid  : " + accessid);
+
+    // Display textfields
+
+    // Run query
+    
+    // Create dataframe
 
     String instantiateRdd =
       "val rowsRdd: RDD[Row] = sc.parallelize(\n" +
@@ -105,6 +117,8 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     interpret(instantiateRdd);
     interpret(instantiateSchema);
     interpret(createDsView);
+
+    // Display histogram
 
     String sqlQuery = "select * from simple\n";
     return super.interpret(sqlQuery, context);
