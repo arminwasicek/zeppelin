@@ -30,16 +30,26 @@ object SparkUtils {
 
   def registerMessagesToRDDStr(viewName: String): String =
     "def messagesToRDD(messages: IndexedSeq[LogMessage]): DataFrame = {\n" +
-    "  import scala.collection.JavaConversions._\n" +
-    "  val fieldsList = asScalaSet(messages(0).getFieldNames).toList\n" +
-    "  val fields = fieldsList.map(fieldName => StructField(fieldName, StringType, nullable = true))\n" +
-    "  val schema = StructType(fields)\n" +
-    "  // Convert records of the RDD (people) to Rows\n" +
-    "  val rowRDD = messages.map(message => Row.fromSeq(fieldsList.map(message.stringField)))\n" +
-    "  // Apply the schema to the RDD\n" +
-    "  val messagesDF = spark.createDataFrame(rowRDD, schema)\n" +
-    "  // Creates a temporary view using the DataFrame\n" +
-    s"""  messagesDF.createOrReplaceTempView("$viewName")""" + "\n" +
-    "  messagesDF\n" +
-    "}"
+      "  import scala.collection.JavaConversions._\n" +
+      "  if (messages == Vector()) { \n" +
+      "    val schema_rdd = StructType(\"\".split(\",\").map(fieldName => StructField(fieldName, StringType, true)) )\n" +
+      "    val emptyDF = spark.createDataFrame(sc.emptyRDD[Row], schema_rdd)\n" +
+      s"""    emptyDF.createOrReplaceTempView("$viewName")""" + "\n" +
+      "    emptyDF\n" +
+      "  }\n" +
+      "  else {\n" +
+      "    val fieldsList = asScalaSet(messages(0).getFieldNames).toList\n" +
+      "    val fields = fieldsList.map(fieldName => StructField(fieldName,\n" +
+      "      StringType, nullable = true))\n" +
+      "    val schema = StructType(fields)\n" +
+      "    // Convert records of the RDD (people) to Rows\n" +
+      "    val rowRDD = messages.map(message => Row.fromSeq(fieldsList.map(message.stringField)))\n" +
+      "    // Apply the schema to the RDD\n" +
+      "    val messagesDF = spark.createDataFrame(rowRDD, schema)\n" +
+      "    // Creates a temporary view using the DataFrame\n" +
+      s"""    messagesDF.createOrReplaceTempView("$viewName")""" + "\n" +
+      "    messagesDF\n" +
+      "  }\n" +
+      "}"
+
 }

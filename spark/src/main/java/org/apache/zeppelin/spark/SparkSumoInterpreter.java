@@ -88,10 +88,6 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     logger.info("QueryStart: " + triplet.startQuery);
     logger.info("QueryEnd  : " + triplet.endQuery);
 
-    interpret("val qq = " + triplet.query + ")");
-    interpret("val qs = " + triplet.startQuery + ")");
-    interpret("val qe = " + triplet.endQuery + ")");
-
     // Display textfields
 //    SparkInterpreter sparkInterpreter = getSparkInterpreter();
 //    ZeppelinContext z = sparkInterpreter.getZeppelinContext();
@@ -112,7 +108,8 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
             triplet.startQuery.getMillis(),
             triplet.endQuery.getMillis()));
 
-    interpret("messagesToRDD(sumoClient.retrieveAllMessages(100)(queryJob))");
+    interpret("val " + tempTableName + "= messagesToRDD(" +
+      "sumoClient.retrieveAllMessages(100)(queryJob))");
 
 
     // Display histogram
@@ -157,10 +154,11 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     DateTime queryStart = queryEnd.minusMinutes(15);
 
     String lines[] = paragraph.split("\n");
-    List<DateTime> parsedDates = new ArrayList<>();
+    ArrayList<DateTime> parsedDates = new ArrayList<>();
     ParserState state = ParserState.QUERYORDATE;
     for (String paragraphLine: lines) {
       DateTime res = ParseDate.parse(paragraphLine.trim());
+      logger.info(res == null ? "null" : res.toString());
       switch (state) {
           case QUERYORDATE:
             if (res == null) {
@@ -187,7 +185,9 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
             break;
       }
     }
+    logger.info("PARSEDATE SIZE" + parsedDates.size());
     Collections.sort(parsedDates);
+    logger.info("PARSEDATE SIZE" + parsedDates.size());
     if (parsedDates.size() >= 2) {
       queryStart = parsedDates.get(0);
       queryEnd = parsedDates.get(parsedDates.size() - 1);
