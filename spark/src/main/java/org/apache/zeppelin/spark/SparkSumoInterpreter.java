@@ -20,6 +20,7 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
   Logger logger = LoggerFactory.getLogger(SparkSumoInterpreter.class);
   private SparkILoop interpreter = null;
   private Object intp = null;
+  String tempTableName = "myquery";
 
   class QueryTriplet {
     String query;
@@ -50,7 +51,7 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       String accessKey = getProperty("zeppelin.spark.sumoAccesskey");
       String accessId  = getProperty("zeppelin.spark.sumoAccessid");
       interpret(SparkUtils.createSumoClientStr(accessId, accessKey));
-      interpret(SparkUtils.registerMessagesToRDDStr("myview"));
+      interpret(SparkUtils.registerMessagesToRDDStr(tempTableName));
 
     } catch (IllegalAccessException | NoSuchFieldException e) {
       throw new InterpreterException(e);
@@ -87,6 +88,10 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     logger.info("QueryStart: " + triplet.startQuery);
     logger.info("QueryEnd  : " + triplet.endQuery);
 
+    interpret("val qq = " + triplet.query + ")");
+    interpret("val qs = " + triplet.startQuery + ")");
+    interpret("val qe = " + triplet.endQuery + ")");
+
     // Display textfields
 //    SparkInterpreter sparkInterpreter = getSparkInterpreter();
 //    ZeppelinContext z = sparkInterpreter.getZeppelinContext();
@@ -107,34 +112,13 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
             triplet.startQuery.getMillis(),
             triplet.endQuery.getMillis()));
 
-    // Create dataframe
+    interpret("messagesToRDD(sumoClient.retrieveAllMessages(100)(queryJob))");
 
-    String instantiateRdd =
-      "val rowsRdd: RDD[Row] = sc.parallelize(\n" +
-      "        Seq(\n" +
-      "                Row(\"first\", 2.0, 7.0),\n" +
-      "                Row(\"second\", 3.5, 2.5),\n" +
-      "                Row(\"third\", 7.0, 5.9)\n" +
-      "        )\n" +
-      ")\n";
-
-    String instantiateSchema =
-      "val schema = new StructType()\n" +
-      "        .add(StructField(\"id\", StringType, true))\n" +
-      "        .add(StructField(\"val1\", DoubleType, true))\n" +
-      "        .add(StructField(\"val2\", DoubleType, true))\n";
-
-    String createDsView =
-      "val df = spark.createDataFrame(rowsRdd, schema)\n" +
-      "df.createOrReplaceTempView(\"simple\")\n";
-
-    interpret(instantiateRdd);
-    interpret(instantiateSchema);
-    interpret(createDsView);
 
     // Display histogram
-
-    String sqlQuery = "select * from simple\n";
+    String sqlQuery = "select timestamp, count(*) as messages from  " +
+      "(select from_unixtime(_messagetime/1000) as timestamp from " + tempTableName +
+      ") group by timestamp";
     return super.interpret(sqlQuery, context);
   }
 
