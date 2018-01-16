@@ -47,6 +47,10 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       interpreter = (SparkILoop) f.get(sparkInterpreter);
       intp = Utils.invokeMethod(interpreter, "intp");
       interpret(SparkUtils.importStatements());
+      String accessKey = getProperty("zeppelin.spark.sumoAccesskey");
+      String accessId  = getProperty("zeppelin.spark.sumoAccessid");
+      interpret(SparkUtils.createSumoClientStr(accessId, accessKey));
+      interpret(SparkUtils.registerMessagesToRDDStr("myview"));
 
     } catch (IllegalAccessException | NoSuchFieldException e) {
       throw new InterpreterException(e);
@@ -83,16 +87,26 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     logger.info("QueryStart: " + triplet.startQuery);
     logger.info("QueryEnd  : " + triplet.endQuery);
 
-    // Access credentials
-    String accesskey = getProperty("zeppelin.spark.sumoAccesskey");
-    String accessid  = getProperty("zeppelin.spark.sumoAccessid");
-    logger.info("Accesskey : " + accesskey);
-    logger.info("Accessid  : " + accessid);
-
     // Display textfields
+//    SparkInterpreter sparkInterpreter = getSparkInterpreter();
+//    ZeppelinContext z = sparkInterpreter.getZeppelinContext();
+//    z.setInterpreterContext(context);
+//    z.setGui(context.getGui());
+//    z.input("Text");
+//    interpret("z.input(\"StartTime\", \"" + triplet.startQuery + "\")");
+//    interpret("z.input(\"EndTime\", \"" + triplet.endQuery + "\")");
 
     // Run query
-    
+    interpret(SparkUtils.runQueryStr(
+      triplet.query,
+      triplet.startQuery.getMillis(),
+      triplet.endQuery.getMillis()));
+
+    logger.info(">>++ SUMO ++<<" + SparkUtils.runQueryStr(
+            triplet.query,
+            triplet.startQuery.getMillis(),
+            triplet.endQuery.getMillis()));
+
     // Create dataframe
 
     String instantiateRdd =

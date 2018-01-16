@@ -19,12 +19,40 @@ import org.apache.hadoop.hive.ql.exec.spark.session.SparkSession
 object SparkUtils {
 
   val importStatements: String =
+    "import org.joda.time.DateTime\n" +
+    "import com.sumologic.notebook.client.{SumoClient, SumoQuery, SumoApiConfig}\n" +
+    "import com.sumologic.client.model.LogMessage\n" +
     "import org.apache.spark.rdd.RDD\n" +
     "import org.apache.spark.sql.types._\n" +
     "import org.apache.spark.sql._\n"
 
-  def myprintln(s: String) =
-    s"Hello $s"
+  def createSumoClientStr(accessid: String, accesskey: String): String =
+    "val sumoClient = new SumoClient(SumoApiConfig(\"" +
+    s"$accessid" + "\", \"" +
+    s"$accesskey" + "\"))"
+
+  def runQueryStr(query: String,
+               startMs: Long,
+               endMs: Long) : String =
+    s"val queryJob = sumoClient.runQuery(SumoQuery($startMs, $endMs, $query))"
+//  "val messages = sumoClient.retrieveAllMessages(100)(queryJob)
+
+  def registerMessagesToRDDStr(viewName: String): String =
+    "def messagesToRDD(messages: IndexedSeq[LogMessage]): DataFrame = {" +
+    "  import scala.collection.JavaConversions._" +
+    "  val fieldsList = asScalaSet(messages(0).getFieldNames).toList" +
+    "  val fields = fieldsList.map(fieldName => StructField(fieldName, StringType, nullable = true))" +
+    "  val schema = StructType(fields)" +
+    "  // Convert records of the RDD (people) to Rows" +
+    "  val rowRDD = messages.map(message => Row.fromSeq(fieldsList.map(message.stringField)))" +
+    "  // Apply the schema to the RDD" +
+    "  val messagesDF = spark.createDataFrame(rowRDD, schema)" +
+    "  // Creates a temporary view using the DataFrame" +
+    "  messagesDF.createOrReplaceTempView(\"" + s"$viewName" + "\")" +
+    "  messagesDF" +
+    "}"
+
+
 
   def createRdd[T](data: Seq[T], sc: SparkContext)(implicit c: ClassTag[T]) : RDD[T] = {
     val distData = sc.parallelize(data)
