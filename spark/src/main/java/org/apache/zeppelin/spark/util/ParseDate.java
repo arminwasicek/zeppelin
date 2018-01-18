@@ -60,6 +60,7 @@ public class ParseDate {
     "MMM d, YYYY HH:mm:ss z",
     "MMM d, yyyy hh:mm:ss a z",
     "EEEEE MMMMM yyyy HH:mm:ss.SSSZ",
+    "YYYY-MM-ddTHH:mm:ss.SSSZ",
     "EEE MMM dd HH:mm:ss z yyyy",
     "YY/M/dd h:mm a",
     "YY/M/dd h:mm:ss a",

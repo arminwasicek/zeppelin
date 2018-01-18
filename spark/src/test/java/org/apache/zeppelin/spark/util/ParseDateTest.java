@@ -12,10 +12,12 @@ public class ParseDateTest {
     String examples[] = {
       "Jan 18, 2018 11:45",
       "Jan 18, 2018 12:00",
+      "2018-01-18T14:37:23.556-08:00",
       "asd"};
     String expectedResult[] = {
       "2018-01-18T11:45:00.000-08:00",
       "2018-01-18T12:00:00.000-08:00",
+      "2018-01-18T14:37:23.556-08:00",
       null};
 
     ArrayList<String> actualResult = new ArrayList<String>();;

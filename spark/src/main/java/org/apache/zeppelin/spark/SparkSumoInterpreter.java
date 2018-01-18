@@ -100,7 +100,12 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     logger.info("QueryEnd  : " + triplet.endQuery);
 
     // Display textfields
-
+    String startQueryStr = triplet.startQuery.toString();
+    String endQueryStr = triplet.endQuery.toString();
+    DateTime startQuery = DateTime.parse((String) z.input("Start Time", startQueryStr));
+    DateTime endQuery = DateTime.parse((String) z.input("End Time", endQueryStr));
+    logger.info("x QueryStart: " + startQuery);
+    logger.info("x QueryEnd  : " + endQuery);
 
 //sparkInterpreter.interpret("z.input(\"Start Time\", \"" + triplet.startQuery + "\")", context);
 //    sparkInterpreter.interpret("z.input(\"End Time\", \"" + triplet.endQuery + "\")", context);
@@ -117,15 +122,17 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
 //    interpret("z.input(\"EndTime\", \"" + triplet.endQuery + "\")");
 
     // Run query
-    interpret(SparkUtils.runQueryStr(
-      triplet.query,
-      triplet.startQuery.getMillis(),
-      triplet.endQuery.getMillis()));
-
     logger.info(">>++ SUMO ++<<" + SparkUtils.runQueryStr(
             triplet.query,
-            triplet.startQuery.getMillis(),
-            triplet.endQuery.getMillis()));
+            startQuery.getMillis(),
+            endQuery.getMillis()));
+
+    interpret(SparkUtils.runQueryStr(
+      triplet.query,
+      startQuery.getMillis(),
+      endQuery.getMillis()));
+
+
 
     interpret("val " + resultName + "= messagesToRDD(" +
       "sumoClient.retrieveAllMessages(100)(queryJob))");
