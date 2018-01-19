@@ -99,6 +99,12 @@
       <groupId>sumodatastore_${scala.binary.version}</groupId>
       <artifactId>sumodatastore_${scala.binary.version}</artifactId>
       <version>0.1</version>
+  </dependency>
+
+    <dependency>
+      <groupId>org.vegas-viz</groupId>
+      <artifactId>vegas_${scala.binary.version}</artifactId>
+      <version>0.3.11</version>
     </dependency>
 
     <dependency>

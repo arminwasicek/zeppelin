@@ -54,7 +54,7 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       String accessId  = getProperty("zeppelin.spark.sumoAccessid");
       String endpoint  = getProperty("zeppelin.spark.sumoEndpoint");
       interpret(SparkUtils.createSumoClientStr(accessId, accessKey, endpoint));
-
+      interpret("implicit val render = vegas.render.ShowHTML(s => print(\"%html \" + s))");
     } catch (IllegalAccessException | NoSuchFieldException e) {
       throw new InterpreterException(e);
     }
