@@ -97,6 +97,29 @@
   },
   {
     "group": "spark",
+    "name": "sumo",
+    "className": "org.apache.zeppelin.spark.SparkSumoInterpreter",
+    "properties": {
+      "zeppelin.spark.sumoAccesskey": {
+        "envName": "ZEPPELIN_SPARK_SUMO_ACCESSKEY",
+        "propertyName": "zeppelin.spark.sumoAccesskey",
+        "defaultValue": "ASD",
+        "description": "Access key for Sumo deployment."
+      },
+      "zeppelin.spark.sumoAccessid": {
+        "envName": "ZEPPELIN_SPARK_SUMO_ACCESSID",
+        "propertyName": "zeppelin.spark.sumoAccessid",
+        "defaultValue": "ASD",
+        "description": "Access id for Sumo deployment."
+      }
+    },
+    "editor": {
+      "language": "sql",
+      "editOnDblClick": false
+    }
+  },
+  {
+    "group": "spark",
     "name": "dep",
     "className": "org.apache.zeppelin.spark.DepInterpreter",
     "properties": {
