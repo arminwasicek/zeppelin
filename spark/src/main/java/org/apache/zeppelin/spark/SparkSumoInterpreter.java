@@ -1,6 +1,7 @@
 package org.apache.zeppelin.spark;
 
 import org.apache.spark.repl.SparkILoop;
+import org.apache.spark.sql.SQLContext;
 import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.spark.util.ParseDate;
 import org.apache.zeppelin.spark.utils.SparkUtils;
@@ -137,6 +138,11 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     interpret("val " + resultName + "= messagesToRDD(" +
       "sumoClient.retrieveAllMessages(100)(queryJob))");
 
+    SQLContext sqlc = sparkInterpreter.getSQLContext();
+    List<String> tables = Arrays.asList(sqlc.tableNames());
+    if (!tables.contains(resultName)) {
+      return new InterpreterResult(InterpreterResult.Code.ERROR, "Somehow the query went wrong.");
+    }
 
     // Display histogram
     String sqlQuery = "select timestamp, count(*) as messages from  " +
