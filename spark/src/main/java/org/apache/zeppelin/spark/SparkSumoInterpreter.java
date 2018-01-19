@@ -138,11 +138,15 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
     interpret("val " + resultName + "= messagesToRDD(" +
       "sumoClient.retrieveAllMessages(100)(queryJob))");
 
-    SQLContext sqlc = sparkInterpreter.getSQLContext();
-    List<String> tables = Arrays.asList(sqlc.tableNames());
-    if (!tables.contains(resultName)) {
-      return new InterpreterResult(InterpreterResult.Code.ERROR, "Somehow the query went wrong.");
-    }
+//    SQLContext sqlc = sparkInterpreter.getSQLContext();
+//    boolean tableCreatedCheck = false;
+//    for (String name : sqlc.tableNames()) {
+//      tableCreatedCheck |= (resultName.equals(name));
+//      logger.info("Tables : " + name);
+//    }
+//    if (!tableCreatedCheck) {
+//      return new InterpreterResult(InterpreterResult.Code.ERROR, "Somehow the query went wrong.");
+//    }
 
     // Display histogram
     String sqlQuery = "select timestamp, count(*) as messages from  " +
