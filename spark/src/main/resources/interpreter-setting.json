@@ -101,6 +101,12 @@
     "className": "org.apache.zeppelin.spark.SparkSumoInterpreter",
     "properties": {
       "zeppelin.spark.sumoAccesskey": {
+        "envName": "ZEPPELIN_SPARK_SUMO_ENDPOINT",
+        "propertyName": "zeppelin.spark.sumoEndpoint",
+        "defaultValue": "https://long-api.sumologic.net/api/v1",
+        "description": "REST API endpoint for Sumo deployment."
+      },
+      "zeppelin.spark.sumoAccesskey": {
         "envName": "ZEPPELIN_SPARK_SUMO_ACCESSKEY",
         "propertyName": "zeppelin.spark.sumoAccesskey",
         "defaultValue": "ASD",

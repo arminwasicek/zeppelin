@@ -52,7 +52,8 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
       interpret(SparkUtils.importStatements());
       String accessKey = getProperty("zeppelin.spark.sumoAccesskey");
       String accessId  = getProperty("zeppelin.spark.sumoAccessid");
-      interpret(SparkUtils.createSumoClientStr(accessId, accessKey));
+      String endpoint  = getProperty("zeppelin.spark.sumoEndpoint");
+      interpret(SparkUtils.createSumoClientStr(accessId, accessKey, endpoint));
 
     } catch (IllegalAccessException | NoSuchFieldException e) {
       throw new InterpreterException(e);

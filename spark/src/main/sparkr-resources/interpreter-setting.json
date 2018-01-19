@@ -56,7 +56,8 @@
       }
     },
     "editor": {
-      "language": "scala"
+      "language": "scala",
+      "editOnDblClick": false
     }
   },
   {
@@ -90,7 +91,37 @@
       }
     },
     "editor": {
-      "language": "sql"
+      "language": "sql",
+      "editOnDblClick": false
+    }
+  },
+  {
+    "group": "spark",
+    "name": "sumo",
+    "className": "org.apache.zeppelin.spark.SparkSumoInterpreter",
+    "properties": {
+      "zeppelin.spark.sumoEndpoint": {
+        "envName": "ZEPPELIN_SPARK_SUMO_ENDPOINT",
+        "propertyName": "zeppelin.spark.sumoEndpoint",
+        "defaultValue": "https://long-api.sumologic.net/api/v1",
+        "description": "REST API endpoint for Sumo deployment."
+      },
+      "zeppelin.spark.sumoAccesskey": {
+        "envName": "ZEPPELIN_SPARK_SUMO_ACCESSKEY",
+        "propertyName": "zeppelin.spark.sumoAccesskey",
+        "defaultValue": "ASD",
+        "description": "Access key for Sumo deployment."
+      },
+      "zeppelin.spark.sumoAccessid": {
+        "envName": "ZEPPELIN_SPARK_SUMO_ACCESSID",
+        "propertyName": "zeppelin.spark.sumoAccessid",
+        "defaultValue": "ASD",
+        "description": "Access id for Sumo deployment."
+      }
+    },
+    "editor": {
+      "language": "sql",
+      "editOnDblClick": false
     }
   },
   {
@@ -112,7 +143,8 @@
       }
     },
     "editor": {
-      "language": "scala"
+      "language": "scala",
+      "editOnDblClick": false
     }
   },
   {
@@ -128,41 +160,8 @@
       }
     },
     "editor": {
-      "language": "python"
-    }
-  },
-  {
-    "group": "spark",
-    "name": "r",
-    "className": "org.apache.zeppelin.spark.SparkRInterpreter",
-    "properties": {
-      "zeppelin.R.knitr": {
-        "envName": "ZEPPELIN_R_KNITR",
-        "propertyName": "zeppelin.R.knitr",
-        "defaultValue": "true",
-        "description": "whether use knitr or not"
-      },
-      "zeppelin.R.cmd": {
-        "envName": "ZEPPELIN_R_CMD",
-        "propertyName": "zeppelin.R.cmd",
-        "defaultValue": "R",
-        "description": "R repl path"
-      },
-      "zeppelin.R.image.width": {
-        "envName": "ZEPPELIN_R_IMAGE_WIDTH",
-        "propertyName": "zeppelin.R.image.width",
-        "defaultValue": "100%",
-        "description": ""
-      },
-      "zeppelin.R.render.options": {
-        "envName": "ZEPPELIN_R_RENDER_OPTIONS",
-        "propertyName": "zeppelin.R.render.options",
-        "defaultValue": "out.format = 'html', comment = NA, echo = FALSE, results = 'asis', message = F, warning = F",
-        "description": ""
-      }
-    },
-    "editor": {
-      "language": "r"
+      "language": "python",
+      "editOnDblClick": false
     }
   }
 ]

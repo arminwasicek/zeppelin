@@ -10,10 +10,11 @@ object SparkUtils {
     "import org.apache.spark.sql.types._\n" +
     "import org.apache.spark.sql._\n"
 
-  def createSumoClientStr(accessid: String, accesskey: String): String =
+  def createSumoClientStr(accessid: String, accesskey: String, endpoint: String): String =
     "val sumoClient = new SumoClient(SumoApiConfig(\"" +
     s"$accessid" + "\", \"" +
-    s"$accesskey" + "\"))"
+    s"$accesskey" + "\", \"" +
+    s"$endpoint" + "\"))"
 
   def escape(raw: String): String = {
     import scala.reflect.runtime.universe._
