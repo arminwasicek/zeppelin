@@ -1,5 +1,6 @@
 package org.apache.zeppelin.spark;
 
+import org.apache.spark.SparkContext;
 import org.apache.spark.repl.SparkILoop;
 import org.apache.spark.sql.SQLContext;
 import org.apache.zeppelin.interpreter.*;
@@ -18,11 +19,13 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  *
  */
-public class SparkSumoInterpreter extends SparkSqlInterpreter {
+public class SparkSumoInterpreter extends Interpreter {
   Logger logger = LoggerFactory.getLogger(SparkSumoInterpreter.class);
   private SparkILoop interpreter = null;
   private Object intp = null;
   String tempTableBaseName = "myquery";
+  private int maxResult;
+
 
   class QueryTriplet {
     String query;
@@ -41,8 +44,34 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
   }
 
   @Override
+  public void close() {}
+
+  @Override
+  public int getProgress(InterpreterContext context) {
+    SparkInterpreter sparkInterpreter = getSparkInterpreter();
+    return sparkInterpreter.getProgress(context);
+  }
+
+  private String getJobGroup(InterpreterContext context){
+    return "zeppelin-" + context.getParagraphId();
+  }
+
+  @Override
+  public void cancel(InterpreterContext context) {
+    SQLContext sqlc = getSparkInterpreter().getSQLContext();
+    SparkContext sc = sqlc.sparkContext();
+
+    sc.cancelJobGroup(getJobGroup(context));
+  }
+
+  @Override
+  public FormType getFormType() {
+    return FormType.SIMPLE;
+  }
+
+  @Override
   public void open() {
-    super.open();
+    this.maxResult = Integer.parseInt(getProperty("zeppelin.spark.maxResult"));
     try {
       SparkInterpreter sparkInterpreter = getSparkInterpreter();
       Field f = sparkInterpreter.getClass().getDeclaredField("interpreter");
@@ -150,10 +179,11 @@ public class SparkSumoInterpreter extends SparkSqlInterpreter {
 //    }
 
     // Display histogram
-    String sqlQuery = "select timestamp, count(*) as messages from  " +
-      "(select from_unixtime(_messagetime/1000) as timestamp from " + resultName +
-      ") group by timestamp";
-    return super.interpret(sqlQuery, context);
+//    String sqlQuery = "select timestamp, count(*) as messages from  " +
+//      "(select from_unixtime(_messagetime/1000) as timestamp from " + resultName +
+//      ") group by timestamp";
+//    return super.interpret(sqlQuery, context);
+    return new InterpreterResult(InterpreterResult.Code.SUCCESS, "Query successful.");
   }
 
   private SparkInterpreter getSparkInterpreter() {
