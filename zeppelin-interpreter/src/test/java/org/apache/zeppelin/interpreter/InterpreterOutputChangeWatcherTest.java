@@ -81,18 +81,21 @@ public class InterpreterOutputChangeWatcherTest implements InterpreterOutputChan
 
     FileOutputStream out1 = new FileOutputStream(file1);
     out1.write(1);
-    out1.close();
 
     FileOutputStream out2 = new FileOutputStream(file2);
     out2.write(1);
-    out2.close();
 
     synchronized (this) {
       wait(30*1000);
     }
 
+//    System.out.println(fileChanged);
+//    System.out.println(numChanged);
+
     assertNotNull(fileChanged);
     assertEquals(1, numChanged);
+    out1.close();
+    out2.close();
   }
 
 

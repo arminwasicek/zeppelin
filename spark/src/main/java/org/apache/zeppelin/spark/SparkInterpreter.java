@@ -592,6 +592,7 @@ public class SparkInterpreter extends Interpreter {
 
   @Override
   public void open() {
+    logger.info(">>>>>>> OPEN SPARK <<<<<<<<<<<<<");
     // set properties and do login before creating any spark stuff for secured cluster
     if (isYarnMode()) {
       System.setProperty("SPARK_YARN_MODE", "true");
@@ -607,8 +608,10 @@ public class SparkInterpreter extends Interpreter {
       }
     }
 
+    logger.info(">>>>>>> CREATE SPARKCONTEXT <<<<<<<<<<<<<");
     conf = new SparkConf();
     URL[] urls = getClassloaderUrls();
+    logger.info(">>>>>>> DONE <<<<<<<<<<<<<");
 
     // Very nice discussion about how scala compiler handle classpath
     // https://groups.google.com/forum/#!topic/scala-user/MlVwo2xCCI0
