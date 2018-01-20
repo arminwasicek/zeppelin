@@ -5,7 +5,7 @@ import org.apache.spark.repl.SparkILoop;
 import org.apache.spark.sql.SQLContext;
 import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.spark.util.ParseDate;
-import org.apache.zeppelin.spark.utils.SparkUtils;
+import org.apache.zeppelin.spark.utils.SparkSumoUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +25,7 @@ public class SparkSumoInterpreter extends Interpreter {
   private Object intp = null;
   String tempTableBaseName = "myquery";
   private int maxResult;
+  private int progress = 0;
 
 
   class QueryTriplet {
@@ -48,8 +49,9 @@ public class SparkSumoInterpreter extends Interpreter {
 
   @Override
   public int getProgress(InterpreterContext context) {
-    SparkInterpreter sparkInterpreter = getSparkInterpreter();
-    return sparkInterpreter.getProgress(context);
+    //SparkInterpreter sparkInterpreter = getSparkInterpreter();
+    //return sparkInterpreter.getProgress(context);
+    return progress;
   }
 
   private String getJobGroup(InterpreterContext context){
@@ -78,11 +80,11 @@ public class SparkSumoInterpreter extends Interpreter {
       f.setAccessible(true);
       interpreter = (SparkILoop) f.get(sparkInterpreter);
       intp = Utils.invokeMethod(interpreter, "intp");
-      interpret(SparkUtils.importStatements());
+      interpret(SparkSumoUtils.importStatements());
       String accessKey = getProperty("zeppelin.spark.sumoAccesskey");
       String accessId  = getProperty("zeppelin.spark.sumoAccessid");
       String endpoint  = getProperty("zeppelin.spark.sumoEndpoint");
-      interpret(SparkUtils.createSumoClientStr(accessId, accessKey, endpoint));
+      interpret(SparkSumoUtils.createSumoClientStr(accessId, accessKey, endpoint));
       interpret("implicit val render = vegas.render.ShowHTML(s => print(\"%html \" + s))");
     } catch (IllegalAccessException | NoSuchFieldException e) {
       throw new InterpreterException(e);
@@ -116,15 +118,15 @@ public class SparkSumoInterpreter extends Interpreter {
     z.setInterpreterContext(context);
     z.setGui(context.getGui());
 
-
     logger.error(">>>> SUMO INTERPRET <<<<");
     String tempTableName = tempTableBaseName +
             ThreadLocalRandom.current().nextInt(100, 1000);
     String resultName = (String) z.input("Dataframe", tempTableName);
-    interpret(SparkUtils.registerMessagesToRDDStr(resultName));
+    interpret(SparkSumoUtils.registerMessagesToRDDStr(resultName));
 
     QueryTriplet triplet = parseQueryTripletFromParagraph(paragraph);
 
+    progress += 10;
     // Logging query triplet
     logger.info("Query: " + triplet.query);
     logger.info("QueryStart: " + triplet.startQuery);
@@ -137,52 +139,35 @@ public class SparkSumoInterpreter extends Interpreter {
     DateTime endQuery = DateTime.parse((String) z.input("End Time", endQueryStr));
     logger.info("x QueryStart: " + startQuery);
     logger.info("x QueryEnd  : " + endQuery);
-
-//sparkInterpreter.interpret("z.input(\"Start Time\", \"" + triplet.startQuery + "\")", context);
-//    sparkInterpreter.interpret("z.input(\"End Time\", \"" + triplet.endQuery + "\")", context);
-//    InterpreterResult resultName =
-//      sparkInterpreter.interpret("z.input(\"Dataframe\", \"" + tempTableName + "\")", context);
     logger.info("ResName  : " + resultName);
 
 
-
-//    logger.info("DataFrame : " + z.input("Dataframe"));
-//    z.setGui(context.getGui());
-//    z.input("Text");
-//    interpret("z.input(\"StartTime\", \"" + triplet.startQuery + "\")");
-//    interpret("z.input(\"EndTime\", \"" + triplet.endQuery + "\")");
-
     // Run query
-    logger.info(">>++ SUMO ++<<" + SparkUtils.runQueryStr(
+    logger.info(">>++ SUMO ++<<" + SparkSumoUtils.runQueryStr(
             triplet.query,
             startQuery.getMillis(),
             endQuery.getMillis()));
 
-    interpret(SparkUtils.runQueryStr(
+    interpret(SparkSumoUtils.runQueryStr(
       triplet.query,
       startQuery.getMillis(),
       endQuery.getMillis()));
 
-
+    progress += 40;
 
     interpret("val " + resultName + "= messagesToRDD(" +
       "sumoClient.retrieveAllMessages(100)(queryJob))");
 
-//    SQLContext sqlc = sparkInterpreter.getSQLContext();
-//    boolean tableCreatedCheck = false;
-//    for (String name : sqlc.tableNames()) {
-//      tableCreatedCheck |= (resultName.equals(name));
-//      logger.info("Tables : " + name);
-//    }
-//    if (!tableCreatedCheck) {
-//      return new InterpreterResult(InterpreterResult.Code.ERROR, "Somehow the query went wrong.");
-//    }
+
+    progress += 20;
 
     // Display histogram
-//    String sqlQuery = "select timestamp, count(*) as messages from  " +
-//      "(select from_unixtime(_messagetime/1000) as timestamp from " + resultName +
-//      ") group by timestamp";
-//    return super.interpret(sqlQuery, context);
+    sparkInterpreter.interpret("SparkSumoUtils.computeHistogram(" +
+      resultName + ")", context);
+    logger.info("Plotted vegas");
+
+    progress += 30;
+
     return new InterpreterResult(InterpreterResult.Code.SUCCESS, "Query successful.");
   }
 
