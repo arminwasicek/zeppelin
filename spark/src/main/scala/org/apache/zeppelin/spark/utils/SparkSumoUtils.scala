@@ -1,11 +1,11 @@
 package org.apache.zeppelin.spark.utils
 
-import com.sumologic.client.model.LogMessage
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.functions.{count, max, min}
 import org.apache.spark.ml.feature.Bucketizer
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import com.sumologic.client.model.LogMessage
 import vegas.Vegas
 import vegas.spec.Spec.MarkEnums.Bar
 import vegas.spec.Spec.TypeEnums.{Ordinal, Quantitative}

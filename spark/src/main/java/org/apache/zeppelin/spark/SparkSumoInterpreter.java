@@ -1,5 +1,6 @@
 package org.apache.zeppelin.spark;
 
+import com.sumologic.notebook.client.QueryJob;
 import org.apache.spark.SparkContext;
 import org.apache.spark.repl.SparkILoop;
 import org.apache.spark.sql.SQLContext;
@@ -9,6 +10,10 @@ import org.apache.zeppelin.spark.utils.SparkSumoUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.None;
+import scala.Some;
+import scala.collection.JavaConversions;
+import scala.tools.nsc.interpreter.IMain;
 import scala.tools.nsc.interpreter.Results;
 
 import java.lang.reflect.Field;
@@ -101,6 +106,26 @@ public class SparkSumoInterpreter extends Interpreter {
     }
   }
 
+  public Object getValue(String name) {
+    Object ret = Utils.invokeMethod(
+            intp, "valueOfTerm", new Class[]{String.class}, new Object[]{name});
+    if (ret instanceof None) {
+      return null;
+    } else if (ret instanceof Some) {
+      return ((Some) ret).get();
+    } else {
+      return ret;
+    }
+  }
+
+  public Object getLastObject() {
+    IMain.Request r = (IMain.Request) Utils.invokeMethod(intp, "lastRequest");
+    Object obj = r.lineRep().call("$result",
+            JavaConversions.asScalaBuffer(new LinkedList<>()));
+    return obj;
+  }
+
+
   private Results.Result interpret(String line) {
     Results.Result res = (Results.Result) Utils.invokeMethod(
             intp,
@@ -153,6 +178,15 @@ public class SparkSumoInterpreter extends Interpreter {
       startQuery.getMillis(),
       endQuery.getMillis()));
 
+    QueryJob job = (QueryJob) getLastObject();
+    if (job.error().nonEmpty()) {
+      String errorMsg = "Query failed : " + job.error().get().getErrorMessage();
+      logger.info(errorMsg);
+      return new InterpreterResult(InterpreterResult.Code.ERROR, errorMsg);
+    }
+    else {
+      logger.info("Query successful : exception field empty");
+    }
     progress += 40;
 
     interpret("val " + resultName + "= messagesToRDD(" +
