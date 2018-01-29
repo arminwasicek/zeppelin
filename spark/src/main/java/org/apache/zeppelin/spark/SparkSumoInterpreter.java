@@ -178,6 +178,9 @@ public class SparkSumoInterpreter extends Interpreter {
       startQuery.getMillis(),
       endQuery.getMillis()));
 
+    progress += 30;
+
+    // Check result
     QueryJob job = (QueryJob) getLastObject();
     if (job.error().nonEmpty()) {
       String errorMsg = "Query failed : " + job.error().get().getErrorMessage();
@@ -187,11 +190,11 @@ public class SparkSumoInterpreter extends Interpreter {
     else {
       logger.info("Query successful : exception field empty");
     }
-    progress += 40;
+    progress += 10;
 
+    // Convert to RDD
     interpret("val " + resultName + "= messagesToRDD(" +
       "sumoClient.retrieveAllMessages(100)(queryJob))");
-
 
     progress += 20;
 
