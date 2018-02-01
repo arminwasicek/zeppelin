@@ -12,14 +12,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.None;
 import scala.Some;
+import scala.Tuple2;
 import scala.collection.JavaConversions;
+import scala.collection.Seq;
 import scala.tools.nsc.interpreter.IMain;
 import scala.tools.nsc.interpreter.Results;
-
+import scala.collection.JavaConverters;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-
 
 /**
  *
@@ -154,17 +155,29 @@ public class SparkSumoInterpreter extends Interpreter {
     progress += 10;
     // Logging query triplet
     logger.info("Query: " + triplet.query);
-    logger.info("QueryStart: " + triplet.startQuery);
-    logger.info("QueryEnd  : " + triplet.endQuery);
+    logger.info("QueryStart  : " + triplet.startQuery);
+    logger.info("QueryEnd    : " + triplet.endQuery);
 
     // Display textfields
+    ArrayList<Tuple2<Object, String>> options = new ArrayList<>();
+    options.add(new Tuple2<>((Object) "log", "Log"));
+    options.add(new Tuple2<>((Object) "metrics", "Metrics"));
+    Seq<Tuple2<Object, String>> optionsSeq =
+            JavaConverters.asScalaBufferConverter(options).asScala().toSeq();
+    String queryType = z.select("Query type", optionsSeq).toString();
+    if (queryType == "") {
+      queryType = z.select("Query type", (Object) "log", optionsSeq).toString();
+    }
+
     String startQueryStr = triplet.startQuery.toString();
     String endQueryStr = triplet.endQuery.toString();
     DateTime startQuery = DateTime.parse((String) z.input("Start Time", startQueryStr));
     DateTime endQuery = DateTime.parse((String) z.input("End Time", endQueryStr));
+
     logger.info("x QueryStart: " + startQuery);
     logger.info("x QueryEnd  : " + endQuery);
-    logger.info("ResName  : " + resultName);
+    logger.info("ResName     : " + resultName);
+    logger.info("queryType   : " + queryType);
 
 
     // Run query
