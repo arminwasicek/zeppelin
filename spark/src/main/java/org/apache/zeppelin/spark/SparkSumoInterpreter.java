@@ -148,7 +148,7 @@ public class SparkSumoInterpreter extends Interpreter {
     String tempTableName = tempTableBaseName +
             ThreadLocalRandom.current().nextInt(100, 1000);
     String resultName = (String) z.input("Dataframe", tempTableName);
-    interpret(SparkSumoUtils.registerMessagesToRDDStr(resultName));
+    //interpret(SparkSumoUtils.registerMessagesToRDDStr(resultName));
 
     QueryTriplet triplet = parseQueryTripletFromParagraph(paragraph);
 
@@ -206,8 +206,15 @@ public class SparkSumoInterpreter extends Interpreter {
     progress += 10;
 
     // Convert to RDD
-    interpret("val " + resultName + "= messagesToRDD(" +
-      "sumoClient.retrieveAllMessages(100)(queryJob))");
+//    interpret("val " + resultName + "= messagesToRDD(" +
+//      "sumoClient.retrieveAllMessages(100)(queryJob))");
+
+    interpret("val " + resultName + " = " +
+            "SparkSumoUtils.messagesToDF(sumoClient.retrieveAllMessages(100)(queryJob), " +
+            "\"" + resultName + "\")(spark)");
+    logger.info("val " + resultName + " = " +
+            "SparkSumoUtils.messagesToRDD2(sumoClient.retrieveAllMessages(100)(queryJob), " +
+            "" + resultName + ")(spark)");
 
     progress += 20;
 

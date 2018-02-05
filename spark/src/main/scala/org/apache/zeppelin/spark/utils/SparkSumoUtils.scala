@@ -7,7 +7,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.functions.{count, max, min}
 import org.apache.spark.ml.feature.Bucketizer
-import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
+import org.apache.spark.sql.types._
 import com.sumologic.client.model.LogMessage
 import vegas.Vegas
 import vegas.spec.Spec.MarkEnums.Bar
@@ -47,31 +47,7 @@ object SparkSumoUtils {
         s"""SumoQuery(${startMs.toString}L, ${endMs.toString}L, """ +
         s"""${escape(query)}))""" + "\n"
 
-  def registerMessagesToRDDStr(viewName: String): String =
-    "def messagesToRDD(messages: IndexedSeq[LogMessage]): DataFrame = {\n" +
-        "  import scala.collection.JavaConversions._\n" +
-        "  if (messages == Vector()) { \n" +
-        "    val schema_rdd = StructType(\"\".split(\",\").map(fieldName => StructField(fieldName, StringType, true)) )\n" +
-        "    val emptyDF = spark.createDataFrame(sc.emptyRDD[Row], schema_rdd)\n" +
-        s"""    emptyDF.createOrReplaceTempView("$viewName")""" + "\n" +
-        "    emptyDF\n" +
-        "  }\n" +
-        "  else {\n" +
-        "    val fieldsList = asScalaSet(messages(0).getFieldNames).toList\n" +
-        "    val fields = fieldsList.map(fieldName => StructField(fieldName,\n" +
-        "      StringType, nullable = true))\n" +
-        "    val schema = StructType(fields)\n" +
-        "    // Convert records of the RDD (people) to Rows\n" +
-        "    val rowRDD = messages.map(message => Row.fromSeq(fieldsList.map(message.stringField)))\n" +
-        "    // Apply the schema to the RDD\n" +
-        "    val messagesDF = spark.createDataFrame(rowRDD, schema)\n" +
-        "    // Creates a temporary view using the DataFrame\n" +
-        s"""    messagesDF.createOrReplaceTempView("$viewName")""" + "\n" +
-        "    messagesDF\n" +
-        "  }\n" +
-        "}"
-
-  def messagesToRDD2(messages: IndexedSeq[LogMessage],
+  def messagesToDF(messages: IndexedSeq[LogMessage],
                      viewName: String)
                     (implicit spark: SparkSession): DataFrame = {
     import scala.collection.JavaConversions._
@@ -97,26 +73,42 @@ object SparkSumoUtils {
     }
   }
 
-  def metricsToRDD2(metrics: CreateMetricsJobResponse)
+  def metricsToInstantsDF(metrics: CreateMetricsJobResponse)
                    (implicit spark: SparkSession): DataFrame = {
-    def getSchema(metricsResponse: CreateMetricsJobResponse): StructType = {
-      def hash(s: String) = MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")).map("%02x".format(_)).mkString("")
-
-      val fieldsList = metricsResponse.map(metric => {
-        hash(metric.getDimensions).take(6)
-      })
-      val fields = fieldsList.map(fieldName =>
-        StructField(fieldName, DoubleType, nullable = true))
-      StructType(fields.toSeq)
-    }
-
-    val schema = getSchema(metrics)
+    def hash(s: String) = MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")).map("%02x".format(_)).mkString("")
+    val fieldsList = metrics.map(metric => {
+      hash(metric.getDimensions).take(6)
+    })
+    val fields = fieldsList.map(fieldName => StructField(fieldName, DoubleType, nullable = true))
+    val dateField = Seq(StructField("timestamp", LongType, nullable = true))
+    val schema = StructType(dateField ++ fields.toSeq)
+    val timestamps = metrics.toSeq(0).getTimestamps
     val rowRDD = (0 until metrics.toSeq.length).map(idx =>
-      Row.fromSeq(metrics.map(m => m.getValues().toList(idx)).toSeq))
+      Row.fromSeq(Seq(timestamps(idx).getMillis) ++ metrics.map(m => m.getValues().toList(idx)).toSeq))
     val metricsDF = spark.createDataFrame(rowRDD.toList, schema)
-    metricsDF.createOrReplaceTempView("mymetric")
     metricsDF
   }
+
+  def metricsToObservationDF(metricsResponse: CreateMetricsJobResponse)
+                             (implicit spark: SparkSession): DataFrame = {
+    def hash(s: String) = MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")).map("%02x".format(_)).mkString("")
+
+    val obsSchema = StructType(Seq(StructField("timestamp", LongType, nullable = true),
+      StructField("key", StringType, nullable = true),
+      StructField("value", DoubleType, nullable = true)))
+
+    val obsRDD = metricsResponse.flatMap(m => {
+      val key = hash(m.getDimensions).take(6)
+      val ts = m.getTimestamps.toList
+      val v = m.getValues.toList
+      (ts zip v).map(_ match {case (ts, v) =>
+        Row.fromSeq(Seq(ts.getMillis, key, v).toSeq)
+      })
+    }).toList
+    val obsDF = spark.createDataFrame(obsRDD, obsSchema)
+    obsDF
+  }
+
 
   def computeHistogram(myquery: DataFrame, col: String = "_messagetime"): Unit = {
     val myqueryi = myquery.selectExpr("cast(" + col + " as double) " + col)

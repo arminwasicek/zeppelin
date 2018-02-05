@@ -135,6 +135,7 @@
     <MaxPermGen>512m</MaxPermGen>
   </properties>
 
+
   <dependencyManagement>
     <dependencies>
       <!-- Logging -->
