@@ -19,7 +19,7 @@ object SparkSumoUtils {
 
   val importStatements: String =
     "import org.joda.time.DateTime\n" +
-        "import com.sumologic.notebook.client.{SumoClient, SumoQuery, SumoApiConfig}\n" +
+        "import com.sumologic.notebook.client.{SumoClient, SumoMetricsClient, SumoQuery, SumoApiConfig}\n" +
         "import com.sumologic.client.model.LogMessage\n" +
         "import org.apache.spark.rdd.RDD\n" +
         "import org.apache.spark.sql.types._\n" +
@@ -35,6 +35,12 @@ object SparkSumoUtils {
         s"$accesskey" + "\", \"" +
         s"$endpoint" + "\"))"
 
+  def createSumoMetricsClientStr(accessid: String, accesskey: String, endpoint: String): String =
+    "val metricsClient = new SumoMetricsClient(SumoApiConfig(\"" +
+        s"$accessid" + "\", \"" +
+        s"$accesskey" + "\", \"" +
+        s"$endpoint" + "\"))"
+
   def escape(raw: String): String = {
     import scala.reflect.runtime.universe._
     Literal(Constant(raw)).toString
@@ -44,6 +50,13 @@ object SparkSumoUtils {
                   startMs: Long,
                   endMs: Long): String =
     "val queryJob = sumoClient.runQuery(" +
+        s"""SumoQuery(${startMs.toString}L, ${endMs.toString}L, """ +
+        s"""${escape(query)}))""" + "\n"
+
+  def runMetricsQueryStr(query: String,
+                  startMs: Long,
+                  endMs: Long): String =
+    "val metricsResponse = metricsClient.runQuery(" +
         s"""SumoQuery(${startMs.toString}L, ${endMs.toString}L, """ +
         s"""${escape(query)}))""" + "\n"
 
@@ -73,7 +86,7 @@ object SparkSumoUtils {
     }
   }
 
-  def metricsToInstantsDF(metrics: CreateMetricsJobResponse)
+  def metricsToInstantsDF(metrics: CreateMetricsJobResponse, viewName: String)
                    (implicit spark: SparkSession): DataFrame = {
     def hash(s: String) = MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")).map("%02x".format(_)).mkString("")
     val fieldsList = metrics.map(metric => {
@@ -85,11 +98,12 @@ object SparkSumoUtils {
     val timestamps = metrics.toSeq(0).getTimestamps
     val rowRDD = (0 until metrics.toSeq.length).map(idx =>
       Row.fromSeq(Seq(timestamps(idx).getMillis) ++ metrics.map(m => m.getValues().toList(idx)).toSeq))
-    val metricsDF = spark.createDataFrame(rowRDD.toList, schema)
-    metricsDF
+    val instantsDF = spark.createDataFrame(rowRDD.toList, schema)
+    instantsDF.createOrReplaceTempView(viewName)
+    instantsDF
   }
 
-  def metricsToObservationDF(metricsResponse: CreateMetricsJobResponse)
+  def metricsToObservationDF(metricsResponse: CreateMetricsJobResponse, viewName: String)
                              (implicit spark: SparkSession): DataFrame = {
     def hash(s: String) = MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")).map("%02x".format(_)).mkString("")
 
@@ -106,6 +120,7 @@ object SparkSumoUtils {
       })
     }).toList
     val obsDF = spark.createDataFrame(obsRDD, obsSchema)
+    obsDF.createOrReplaceTempView(viewName)
     obsDF
   }
 

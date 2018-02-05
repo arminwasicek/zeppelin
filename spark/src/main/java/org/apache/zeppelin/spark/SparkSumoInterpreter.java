@@ -91,6 +91,7 @@ public class SparkSumoInterpreter extends Interpreter {
       String accessId  = getProperty("zeppelin.spark.sumoAccessid");
       String endpoint  = getProperty("zeppelin.spark.sumoEndpoint");
       interpret(SparkSumoUtils.createSumoClientStr(accessId, accessKey, endpoint));
+      interpret(SparkSumoUtils.createSumoMetricsClientStr(accessId, accessKey, endpoint));
       interpret("implicit val render = vegas.render.ShowHTML(s => print(\"%html \" + s))");
     } catch (IllegalAccessException | NoSuchFieldException e) {
       throw new InterpreterException(e);
@@ -148,7 +149,6 @@ public class SparkSumoInterpreter extends Interpreter {
     String tempTableName = tempTableBaseName +
             ThreadLocalRandom.current().nextInt(100, 1000);
     String resultName = (String) z.input("Dataframe", tempTableName);
-    //interpret(SparkSumoUtils.registerMessagesToRDDStr(resultName));
 
     QueryTriplet triplet = parseQueryTripletFromParagraph(paragraph);
 
@@ -181,51 +181,67 @@ public class SparkSumoInterpreter extends Interpreter {
 
 
     // Run query
-    logger.info(">>++ SUMO ++<<" + SparkSumoUtils.runQueryStr(
-            triplet.query,
-            startQuery.getMillis(),
-            endQuery.getMillis()));
+    if ((queryType.equals("")) || (queryType.equals("log"))) {
+      String runQuery = SparkSumoUtils.runQueryStr(
+              triplet.query, startQuery.getMillis(), endQuery.getMillis());
+      interpret(runQuery);
+      logger.info(runQuery);
 
-    interpret(SparkSumoUtils.runQueryStr(
-      triplet.query,
-      startQuery.getMillis(),
-      endQuery.getMillis()));
+      progress += 30;
 
-    progress += 30;
+      // Check result
+      QueryJob job = (QueryJob) getLastObject();
+      if (job.error().nonEmpty()) {
+        String errorMsg = "Query failed : " + job.error().get().getErrorMessage();
+        logger.info(errorMsg);
+        return new InterpreterResult(InterpreterResult.Code.ERROR, errorMsg);
+      } else {
+        logger.info("Query successful : exception field empty");
+      }
+      progress += 10;
 
-    // Check result
-    QueryJob job = (QueryJob) getLastObject();
-    if (job.error().nonEmpty()) {
-      String errorMsg = "Query failed : " + job.error().get().getErrorMessage();
-      logger.info(errorMsg);
-      return new InterpreterResult(InterpreterResult.Code.ERROR, errorMsg);
+      // Convert to RDD
+      String convertToRDD = "val " + resultName + " = " +
+              "SparkSumoUtils.messagesToDF(sumoClient.retrieveAllMessages(100)(queryJob), " +
+              "\"" + resultName + "\")(spark)";
+      interpret(convertToRDD);
+      logger.info(convertToRDD);
+
+      progress += 20;
+
+      // Display histogram
+      sparkInterpreter.interpret("SparkSumoUtils.computeHistogram(" +
+              resultName + ")", context);
+      logger.info("Plotted vegas");
+
+      progress += 30;
+
+      return new InterpreterResult(InterpreterResult.Code.SUCCESS, "Log query successful.");
     }
-    else {
-      logger.info("Query successful : exception field empty");
+    else if (queryType.equals("metrics")) {
+      // Run query
+      String runQuery = SparkSumoUtils.runMetricsQueryStr(
+              triplet.query, startQuery.getMillis(), endQuery.getMillis());
+      interpret(runQuery);
+      logger.info(runQuery);
+
+      progress += 40;
+
+      // Check result
+
+
+      // Convert to RDD
+      String convertToRDD = "val " + resultName + " = " +
+              "SparkSumoUtils.metricsToInstantsDF(metricsResponse, " +
+              "\"" + resultName + "\")(spark)";
+      interpret(convertToRDD);
+      logger.info(convertToRDD);
+
+      progress += 40;
+
+      return new InterpreterResult(InterpreterResult.Code.SUCCESS, "Metrics query successful.");
     }
-    progress += 10;
-
-    // Convert to RDD
-//    interpret("val " + resultName + "= messagesToRDD(" +
-//      "sumoClient.retrieveAllMessages(100)(queryJob))");
-
-    interpret("val " + resultName + " = " +
-            "SparkSumoUtils.messagesToDF(sumoClient.retrieveAllMessages(100)(queryJob), " +
-            "\"" + resultName + "\")(spark)");
-    logger.info("val " + resultName + " = " +
-            "SparkSumoUtils.messagesToRDD2(sumoClient.retrieveAllMessages(100)(queryJob), " +
-            "" + resultName + ")(spark)");
-
-    progress += 20;
-
-    // Display histogram
-    sparkInterpreter.interpret("SparkSumoUtils.computeHistogram(" +
-      resultName + ")", context);
-    logger.info("Plotted vegas");
-
-    progress += 30;
-
-    return new InterpreterResult(InterpreterResult.Code.SUCCESS, "Query successful.");
+    return new InterpreterResult(InterpreterResult.Code.ERROR, "Query type invalid.");
   }
 
   private SparkInterpreter getSparkInterpreter() {
