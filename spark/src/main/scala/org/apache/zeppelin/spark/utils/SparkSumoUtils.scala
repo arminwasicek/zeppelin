@@ -3,6 +3,7 @@ package org.apache.zeppelin.spark.utils
 import java.security.MessageDigest
 
 import com.sumologic.client.metrics.model.CreateMetricsJobResponse
+import com.sumologic.notebook.client.{QueryJob, SumoClient, SumoMetricsClient, SumoQuery}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.functions.{count, max, min}
@@ -16,6 +17,8 @@ import vegas.spec.Spec.TypeEnums.{Ordinal, Quantitative}
 import collection.JavaConversions._
 
 object SparkSumoUtils {
+  var metricsClient : Option[SumoMetricsClient] = None
+  var sumoClient : Option[SumoClient] = None
 
   val importStatements: String =
     "import org.joda.time.DateTime\n" +
@@ -30,16 +33,18 @@ object SparkSumoUtils {
         "import collection.JavaConversions._\n"
 
   def createSumoClientStr(accessid: String, accesskey: String, endpoint: String): String =
-    "val sumoClient = new SumoClient(SumoApiConfig(\"" +
+    "SparkSumoUtils.sumoClient = Some(new SumoClient(SumoApiConfig(\"" +
         s"$accessid" + "\", \"" +
         s"$accesskey" + "\", \"" +
-        s"$endpoint" + "\"))"
+        s"$endpoint" + "\")))"
+
 
   def createSumoMetricsClientStr(accessid: String, accesskey: String, endpoint: String): String =
-    "val metricsClient = new SumoMetricsClient(SumoApiConfig(\"" +
+    "SparkSumoUtils.metricsClient = Some(new SumoMetricsClient(SumoApiConfig(\"" +
         s"$accessid" + "\", \"" +
         s"$accesskey" + "\", \"" +
-        s"$endpoint" + "\"))"
+        s"$endpoint" + "\")))"
+
 
   def escape(raw: String): String = {
     import scala.reflect.runtime.universe._
@@ -49,16 +54,29 @@ object SparkSumoUtils {
   def runQueryStr(query: String,
                   startMs: Long,
                   endMs: Long): String =
-    "val queryJob = sumoClient.runQuery(" +
+    "val queryJob = SparkSumoUtils.sumoClient.get.runQuery(" +
         s"""SumoQuery(${startMs.toString}L, ${endMs.toString}L, """ +
         s"""${escape(query)}))""" + "\n"
 
   def runMetricsQueryStr(query: String,
                   startMs: Long,
                   endMs: Long): String =
-    "val metricsResponse = metricsClient.runQuery(" +
+    "val metricsResponse = SparkSumoUtils.metricsClient.get.runQuery(" +
         s"""SumoQuery(${startMs.toString}L, ${endMs.toString}L, """ +
         s"""${escape(query)}))""" + "\n"
+
+  def runMetricsQuery(query: String,
+                      startMs: Long,
+                      endMs: Long): CreateMetricsJobResponse = {
+    metricsClient.get.runQuery(SumoQuery(startMs, endMs, query))
+  }
+
+  def runLogQuery(query: String,
+                      startMs: Long,
+                      endMs: Long): QueryJob = {
+    sumoClient.get.runQuery(SumoQuery(startMs, endMs, query))
+  }
+
 
   def messagesToDF(messages: IndexedSeq[LogMessage],
                      viewName: String)

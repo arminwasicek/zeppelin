@@ -202,7 +202,8 @@ public class SparkSumoInterpreter extends Interpreter {
 
       // Convert to RDD
       String convertToRDD = "val " + resultName + " = " +
-              "SparkSumoUtils.messagesToDF(sumoClient.retrieveAllMessages(100)(queryJob), " +
+        "SparkSumoUtils.messagesToDF(" +
+              "SparkSumoUtils.sumoClient.get.retrieveAllMessages(100)(queryJob), " +
               "\"" + resultName + "\")(spark)";
       interpret(convertToRDD);
       logger.info(convertToRDD);
