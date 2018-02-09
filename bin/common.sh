@@ -44,7 +44,7 @@ if [[ -z "${ZEPPELIN_WAR}" ]]; then
   if [[ -d "${ZEPPELIN_HOME}/zeppelin-web/dist" ]]; then
     export ZEPPELIN_WAR="${ZEPPELIN_HOME}/zeppelin-web/dist"
   else
-    export ZEPPELIN_WAR=$(find -L "${ZEPPELIN_HOME}" -name "zeppelin-web*.war")
+    export ZEPPELIN_WAR=$(find -L "${ZEPPELIN_HOME}" -maxdepth 2 -name "zeppelin-web*.war")
   fi
 fi
 

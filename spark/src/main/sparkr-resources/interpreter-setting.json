@@ -109,13 +109,13 @@
       "zeppelin.spark.sumoAccesskey": {
         "envName": "ZEPPELIN_SPARK_SUMO_ACCESSKEY",
         "propertyName": "zeppelin.spark.sumoAccesskey",
-        "defaultValue": "ASD",
+        "defaultValue": "EnterAccessKeyHere",
         "description": "Access key for Sumo deployment."
       },
       "zeppelin.spark.sumoAccessid": {
         "envName": "ZEPPELIN_SPARK_SUMO_ACCESSID",
         "propertyName": "zeppelin.spark.sumoAccessid",
-        "defaultValue": "ASD",
+        "defaultValue": "EnterAccessIdHere",
         "description": "Access id for Sumo deployment."
       }
     },
