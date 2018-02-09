@@ -1,10 +1,10 @@
 package org.apache.zeppelin.spark.utils
 
 import java.security.MessageDigest
+import java.util.concurrent.ThreadLocalRandom
 
 import com.sumologic.client.metrics.model.CreateMetricsJobResponse
 import com.sumologic.notebook.client.{QueryJob, SumoClient, SumoMetricsClient, SumoQuery}
-import org.apache.spark.SparkContext
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.functions.{count, max, min}
 import org.apache.spark.ml.feature.Bucketizer
@@ -17,6 +17,7 @@ import vegas.spec.Spec.TypeEnums.{Ordinal, Quantitative}
 import collection.JavaConversions._
 
 object SparkSumoUtils {
+  private val tempTableBaseName = "myquery"
   var metricsClient : Option[SumoMetricsClient] = None
   var sumoClient : Option[SumoClient] = None
 
@@ -67,14 +68,21 @@ object SparkSumoUtils {
 
   def runMetricsQuery(query: String,
                       startMs: Long,
-                      endMs: Long): CreateMetricsJobResponse = {
-    metricsClient.get.runQuery(SumoQuery(startMs, endMs, query))
+                      endMs: Long,
+                      viewName: String = "mymetrics")
+                      (implicit spark: SparkSession): DataFrame = {
+    val response = metricsClient.get.runQuery(SumoQuery(startMs, endMs, query))
+    metricsToInstantsDF(response, viewName)(spark)
   }
 
   def runLogQuery(query: String,
                       startMs: Long,
                       endMs: Long): QueryJob = {
     sumoClient.get.runQuery(SumoQuery(startMs, endMs, query))
+  }
+
+  def createTempTableName : String = {
+    tempTableBaseName + ThreadLocalRandom.current.nextInt(100, 1000)
   }
 
 

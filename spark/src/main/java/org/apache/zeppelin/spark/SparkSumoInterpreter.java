@@ -20,7 +20,6 @@ import scala.tools.nsc.interpreter.Results;
 import scala.collection.JavaConverters;
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  *
@@ -29,7 +28,6 @@ public class SparkSumoInterpreter extends Interpreter {
   Logger logger = LoggerFactory.getLogger(SparkSumoInterpreter.class);
   private SparkILoop interpreter = null;
   private Object intp = null;
-  String tempTableBaseName = "myquery";
   private int maxResult;
   private int progress = 0;
 
@@ -146,8 +144,9 @@ public class SparkSumoInterpreter extends Interpreter {
     z.setGui(context.getGui());
 
     logger.error(">>>> SUMO INTERPRET <<<<");
-    String tempTableName = tempTableBaseName +
-            ThreadLocalRandom.current().nextInt(100, 1000);
+//    String tempTableName = tempTableBaseName +
+//            ThreadLocalRandom.current().nextInt(100, 1000);
+    String tempTableName = SparkSumoUtils.createTempTableName();
     String resultName = (String) z.input("Dataframe", tempTableName);
 
     QueryTriplet triplet = parseQueryTripletFromParagraph(paragraph);
