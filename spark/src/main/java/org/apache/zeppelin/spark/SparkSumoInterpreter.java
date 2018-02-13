@@ -183,8 +183,13 @@ public class SparkSumoInterpreter extends Interpreter {
     if ((queryType.equals("")) || (queryType.equals("log"))) {
       String runQuery = SparkSumoUtils.runQueryStr(
               triplet.query, startQuery.getMillis(), endQuery.getMillis());
-      interpret(runQuery);
+      Results.Result codeRetrieve = interpret(runQuery);
       logger.info(runQuery);
+      if (getResultCode(codeRetrieve) != InterpreterResult.Code.SUCCESS) {
+        return new InterpreterResult(getResultCode(codeRetrieve),
+                "Something went wrong when retrieving logs.");
+      }
+
 
       progress += 30;
 
@@ -204,8 +209,12 @@ public class SparkSumoInterpreter extends Interpreter {
         "SparkSumoUtils.messagesToDF(" +
               "SparkSumoUtils.sumoClient.get.retrieveAllMessages(100)(queryJob), " +
               "\"" + resultName + "\")(spark)";
-      interpret(convertToRDD);
+      Results.Result codeCovert = interpret(convertToRDD);
       logger.info(convertToRDD);
+      if (getResultCode(codeCovert) != InterpreterResult.Code.SUCCESS) {
+        return new InterpreterResult(getResultCode(codeCovert),
+                "Something went wrong when converting logs.");
+      }
 
       progress += 20;
 
@@ -222,20 +231,28 @@ public class SparkSumoInterpreter extends Interpreter {
       // Run query
       String runQuery = SparkSumoUtils.runMetricsQueryStr(
               triplet.query, startQuery.getMillis(), endQuery.getMillis());
-      interpret(runQuery);
+      Results.Result codeRun = interpret(runQuery);
       logger.info(runQuery);
+      if (getResultCode(codeRun) != InterpreterResult.Code.SUCCESS) {
+        return new InterpreterResult(getResultCode(codeRun),
+                "Something went wrong when retrieving metrics.");
+      }
 
       progress += 40;
 
       // Check result
-
-
+      
       // Convert to RDD
       String convertToRDD = "val " + resultName + " = " +
               "SparkSumoUtils.metricsToInstantsDF(metricsResponse, " +
               "\"" + resultName + "\")(spark)";
-      interpret(convertToRDD);
+      Results.Result codeRetrieve = interpret(convertToRDD);
       logger.info(convertToRDD);
+      if (getResultCode(codeRetrieve) != InterpreterResult.Code.SUCCESS) {
+        return new InterpreterResult(getResultCode(codeRetrieve),
+                "Something went wrong when converting metrics.");
+      }
+
 
       progress += 40;
 
@@ -262,6 +279,7 @@ public class SparkSumoInterpreter extends Interpreter {
     }
     return spark;
   }
+
 
   enum ParserState {QUERYORDATE, QUERYPARSE, DATEPARSE}
 
