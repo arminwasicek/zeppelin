@@ -21,7 +21,7 @@ object SparkSumoUtils {
   private val tempTableBaseName = "myquery"
   var metricsClient : Option[SumoMetricsClient] = None
   var sumoClient : Option[SumoClient] = None
-  var result : Object = None
+  var result : Option[Exception] = None
 
   val importStatements: String =
     "import org.joda.time.DateTime\n" +
@@ -66,17 +66,27 @@ object SparkSumoUtils {
   def runMetricsQueryStr(query: String,
                   startMs: Long,
                   endMs: Long): String =
+
     "val metricsResponse = SparkSumoUtils.metricsClient.get.runQuery(" +
         s"""SumoQuery(${startMs.toString}L, ${endMs.toString}L, """ +
         s"""${escape(query)}))""" + "\n"
+
 
   def runMetricsQuery(query: String,
                       startMs: Long,
                       endMs: Long,
                       viewName: String = "mymetrics")
                       (implicit spark: SparkSession): DataFrame = {
-    val response = metricsClient.get.runQuery(SumoQuery(startMs, endMs, query))
-    metricsToInstantsDF(response, viewName)(spark)
+    SparkSumoUtils.result = None
+    val response : Option[CreateMetricsJobResponse] = try {
+      Some(metricsClient.get.runQuery(SumoQuery(startMs, endMs, query)))
+    } catch {
+      case e: Exception => {
+        SparkSumoUtils.result = Some(e)
+        None
+      }
+    }
+    metricsToInstantsDF(response.get, viewName)(spark)
   }
 
   def runLogQuery(query: String,
