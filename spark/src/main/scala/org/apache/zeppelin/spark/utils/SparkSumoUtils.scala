@@ -13,6 +13,7 @@ import com.sumologic.client.model.LogMessage
 import vegas.Vegas
 import vegas.spec.Spec.MarkEnums.Bar
 import vegas.spec.Spec.TypeEnums.{Ordinal, Quantitative}
+import collection.JavaConversions._
 
 import collection.JavaConversions._
 
@@ -20,6 +21,7 @@ object SparkSumoUtils {
   private val tempTableBaseName = "myquery"
   var metricsClient : Option[SumoMetricsClient] = None
   var sumoClient : Option[SumoClient] = None
+  var result : Object = None
 
   val importStatements: String =
     "import org.joda.time.DateTime\n" +
@@ -31,7 +33,9 @@ object SparkSumoUtils {
         "import vegas._\n" +
         "import vegas.data.External._\n" +
         "import org.apache.zeppelin.spark.utils.SparkSumoUtils\n" +
-        "import collection.JavaConversions._\n"
+        "import collection.JavaConversions._\n" +
+        "import java.security.MessageDigest\n" +
+        "import com.sumologic.client.metrics.model.CreateMetricsJobResponse\n"
 
   def createSumoClientStr(accessid: String, accesskey: String, endpoint: String): String =
     "SparkSumoUtils.sumoClient = Some(new SumoClient(SumoApiConfig(\"" +
@@ -121,9 +125,10 @@ object SparkSumoUtils {
     val fields = fieldsList.map(fieldName => StructField(fieldName, DoubleType, nullable = true))
     val dateField = Seq(StructField("timestamp", LongType, nullable = true))
     val schema = StructType(dateField ++ fields.toSeq)
-    val timestamps = metrics.toSeq(0).getTimestamps
-    val rowRDD = (0 until metrics.toSeq.length).map(idx =>
-      Row.fromSeq(Seq(timestamps(idx).getMillis) ++ metrics.map(m => m.getValues().toList(idx)).toSeq))
+    val timestamps = metrics.toSeq.head.getTimestamps
+    val rows = metrics.map(_.getTimestamps.toSeq.length).min
+    val rowRDD = (0 until rows).map(idx =>
+      Row.fromSeq(Seq(timestamps(idx).getMillis) ++ metrics.map(m => m.getValues.toList(idx)).toSeq))
     val instantsDF = spark.createDataFrame(rowRDD.toList, schema)
     instantsDF.createOrReplaceTempView(viewName)
     instantsDF
